@@ -97,10 +97,9 @@ void HF_LLDPAgent::handlePacketIn(OFP_Packet_In * packet_in_msg){
 void HF_LLDPAgent::receiveSignal(cComponent *src, simsignal_t id, cObject *obj) {
     //set hfagent link
     if(hfAgent == NULL && controller != NULL){
-        std::list<AbstractControllerApp *> appList = controller->getAppList();
-        std::list<AbstractControllerApp *>::iterator iterApp;
+        auto appList = controller->getAppList();
 
-        for(iterApp=appList.begin();iterApp!=appList.end();++iterApp){
+        for(auto iterApp=appList->begin();iterApp!=appList->end();++iterApp){
             if(dynamic_cast<HyperFlowAgent *>(*iterApp) != NULL) {
                 HyperFlowAgent *hf = (HyperFlowAgent *) *iterApp;
                 hfAgent = hf;

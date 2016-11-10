@@ -48,7 +48,8 @@ void KN_LLDPForwarding::handlePacketIn(OFP_Packet_In * packet_in_msg){
 
 
     //compute path for non arps
-    std::list<LLDPPathSegment> route = computePath(headerFields.swInfo->getMacAddress(),headerFields.dst_mac.str());
+    std::list<LLDPPathSegment> route;
+    computePath(headerFields.swInfo->getMacAddress(),headerFields.dst_mac.str(),route);
 
     unsigned long hash =0;
 
@@ -98,16 +99,16 @@ void KN_LLDPForwarding::handlePacketIn(OFP_Packet_In * packet_in_msg){
         sendPacket(packet_in_msg,seg.outport);
 
         //set flow mods for all switches under my controller's command
-        oxm_basic_match *match = new oxm_basic_match();
-        match->OFB_ETH_DST = headerFields.dst_mac;
+        oxm_basic_match match = oxm_basic_match();
+        match.OFB_ETH_DST = headerFields.dst_mac;
 
-        match->wildcards= 0;
-        match->wildcards |= OFPFW_IN_PORT;
-        match->wildcards |=  OFPFW_DL_SRC;
-        match->wildcards |= OFPFW_DL_TYPE;
+        match.wildcards= 0;
+        match.wildcards |= OFPFW_IN_PORT;
+        match.wildcards |=  OFPFW_DL_SRC;
+        match.wildcards |= OFPFW_DL_TYPE;
 
         TCPSocket * socket = controller->findSocketFor(packet_in_msg);
-        sendFlowModMessage(OFPFC_ADD, match, seg.outport, socket,par("flowModIdleTimeOut"),par("flowModHardTimeOut"));
+        sendFlowModMessage(OFPFC_ADD, match, seg.outport, socket,idleTimeout,hardTimeout);
 
         //concatenate route
        computedRoute += seg.chassisId + " -> ";
@@ -116,20 +117,20 @@ void KN_LLDPForwarding::handlePacketIn(OFP_Packet_In * packet_in_msg){
         while(!route.empty()){
             seg = route.front();
             route.pop_front();
-            oxm_basic_match *match = new oxm_basic_match();
-            match->OFB_ETH_DST = headerFields.dst_mac;
+            oxm_basic_match match = oxm_basic_match();
+            match.OFB_ETH_DST = headerFields.dst_mac;
 
-            match->wildcards= 0;
-            match->wildcards |= OFPFW_IN_PORT;
-            match->wildcards |=  OFPFW_DL_SRC;
-            match->wildcards |= OFPFW_DL_TYPE;
+            match.wildcards= 0;
+            match.wildcards |= OFPFW_IN_PORT;
+            match.wildcards |=  OFPFW_DL_SRC;
+            match.wildcards |= OFPFW_DL_TYPE;
 
             computedRoute += seg.chassisId + " -> ";
 
             TCPSocket * socket = controller->findSocketForChassisId(seg.chassisId);
             //is switch under our control
             if(socket != NULL){
-                sendFlowModMessage(OFPFC_ADD, match, seg.outport, socket,par("flowModIdleTimeOut"),par("flowModHardTimeOut"));
+                sendFlowModMessage(OFPFC_ADD, match, seg.outport, socket,idleTimeout,hardTimeout);
             }
         }
 
@@ -148,10 +149,9 @@ void KN_LLDPForwarding::receiveSignal(cComponent *src, simsignal_t id, cObject *
 
     //set knagent link
     if(knAgent == NULL && controller != NULL){
-        std::list<AbstractControllerApp *> appList = controller->getAppList();
-        std::list<AbstractControllerApp *>::iterator iterApp;
+        auto appList = controller->getAppList();
 
-        for(iterApp=appList.begin();iterApp!=appList.end();++iterApp){
+        for(auto iterApp=appList->begin();iterApp!=appList->end();++iterApp){
             if(dynamic_cast<KandooAgent *>(*iterApp) != NULL) {
                 KandooAgent *kn = (KandooAgent *) *iterApp;
                 knAgent = kn;
@@ -190,7 +190,8 @@ void KN_LLDPForwarding::receiveSignal(cComponent *src, simsignal_t id, cObject *
 
 
                         //compute path for non arps
-                        std::list<LLDPPathSegment> route = computePath(knpck->getKnEntry().srcSwitch,headerFields.dst_mac.str());
+                        std::list<LLDPPathSegment> route;
+                        computePath(knpck->getKnEntry().srcSwitch,headerFields.dst_mac.str(),route);
 
                         //if route empty flood
                         if(route.empty()){
@@ -240,13 +241,13 @@ void KN_LLDPForwarding::receiveSignal(cComponent *src, simsignal_t id, cObject *
                             knAgent->sendReply(knpck,entry);
 
                             //set flow mods for all switches under my controller's command
-                            oxm_basic_match *match = new oxm_basic_match();
-                            match->OFB_ETH_DST = headerFields.dst_mac;
+                            oxm_basic_match match = oxm_basic_match();
+                            match.OFB_ETH_DST = headerFields.dst_mac;
 
-                            match->wildcards= 0;
-                            match->wildcards |= OFPFW_IN_PORT;
-                            match->wildcards |=  OFPFW_DL_SRC;
-                            match->wildcards |= OFPFW_DL_TYPE;
+                            match.wildcards= 0;
+                            match.wildcards |= OFPFW_IN_PORT;
+                            match.wildcards |=  OFPFW_DL_SRC;
+                            match.wildcards |= OFPFW_DL_TYPE;
 
 
                             entry = KandooEntry();
@@ -257,7 +258,7 @@ void KN_LLDPForwarding::receiveSignal(cComponent *src, simsignal_t id, cObject *
                             entry.srcSwitch = "";
                             entry.type=2;
                             entry.srcController = knpck->getKnEntry().trgController;
-                            entry.payload = createFlowMod(OFPFC_ADD, match, seg.outport,par("flowModIdleTimeOut"),par("flowModHardTimeOut"));
+                            entry.payload = createFlowMod(OFPFC_ADD, match, seg.outport,idleTimeout,hardTimeout);
 
                             knAgent->sendReply(knpck,entry);
 
@@ -266,13 +267,13 @@ void KN_LLDPForwarding::receiveSignal(cComponent *src, simsignal_t id, cObject *
                             while(!route.empty()){
                                 seg = route.front();
                                 route.pop_front();
-                                oxm_basic_match *match = new oxm_basic_match();
-                                match->OFB_ETH_DST = headerFields.dst_mac;
+                                oxm_basic_match match = oxm_basic_match();
+                                match.OFB_ETH_DST = headerFields.dst_mac;
 
-                                match->wildcards= 0;
-                                match->wildcards |= OFPFW_IN_PORT;
-                                match->wildcards |=  OFPFW_DL_SRC;
-                                match->wildcards |= OFPFW_DL_TYPE;
+                                match.wildcards= 0;
+                                match.wildcards |= OFPFW_IN_PORT;
+                                match.wildcards |=  OFPFW_DL_SRC;
+                                match.wildcards |= OFPFW_DL_TYPE;
 
                                 entry = KandooEntry();
                                 entry.trgApp = "KN_LLDPForwarding";
@@ -282,7 +283,7 @@ void KN_LLDPForwarding::receiveSignal(cComponent *src, simsignal_t id, cObject *
                                 entry.srcSwitch = "";
                                 entry.type=2;
                                 entry.srcController = knpck->getKnEntry().trgController;
-                                entry.payload = createFlowMod(OFPFC_ADD, match, seg.outport,par("flowModIdleTimeOut"),par("flowModHardTimeOut"));
+                                entry.payload = createFlowMod(OFPFC_ADD, match, seg.outport,idleTimeout,hardTimeout);
 
                                 knAgent->sendReplyToSwitchAuthoritive(seg.chassisId,entry);
                             }

@@ -34,6 +34,9 @@ void LLDPBalancedMinHop::initialize(){
     versionMiss = 0;
     cacheHit = 0;
     cacheMiss = 0;
+
+    idleTimeout = par("flowModIdleTimeOut");
+    hardTimeout = par("flowModHardTimeOut");
 }
 
 
@@ -54,7 +57,7 @@ void LLDPBalancedMinHop::handlePacketIn(OFP_Packet_In * packet_in_msg){
 
 
     //compute path for non arps
-    std::list<LLDPPathSegment> route = computeBalancedMinHopPath(headerFields.swInfo->getMacAddress(),headerFields.dst_mac.str());
+    auto route = computeBalancedMinHopPath(headerFields.swInfo->getMacAddress(),headerFields.dst_mac.str());
 
     //if route empty flood
     if(route.empty()){
@@ -70,34 +73,34 @@ void LLDPBalancedMinHop::handlePacketIn(OFP_Packet_In * packet_in_msg){
         sendPacket(packet_in_msg,seg.outport);
 
         //set flow mods for all switches under my controller's command
-        oxm_basic_match *match = new oxm_basic_match();
-        match->OFB_ETH_DST = headerFields.dst_mac;
-        match->OFB_ETH_SRC = headerFields.src_mac;
+        oxm_basic_match match = oxm_basic_match();
+        match.OFB_ETH_DST = headerFields.dst_mac;
+        match.OFB_ETH_SRC = headerFields.src_mac;
 
-        match->wildcards= 0;
-        match->wildcards |= OFPFW_IN_PORT;
-        match->wildcards |= OFPFW_DL_TYPE;
+        match.wildcards= 0;
+        match.wildcards |= OFPFW_IN_PORT;
+        match.wildcards |= OFPFW_DL_TYPE;
 
-        TCPSocket * socket = controller->findSocketFor(packet_in_msg);
-        sendFlowModMessage(OFPFC_ADD, match, seg.outport, socket,par("flowModIdleTimeOut"),par("flowModHardTimeOut"));
+
+        sendFlowModMessage(OFPFC_ADD, match, seg.outport, controller->findSocketFor(packet_in_msg),idleTimeout,hardTimeout);
 
         //iterate the rest of the route and set flow mods for switches under my control
         while(!route.empty()){
             seg = route.front();
             route.pop_front();
-            oxm_basic_match *match = new oxm_basic_match();
-            match->OFB_ETH_DST = headerFields.dst_mac;
-            match->OFB_ETH_SRC = headerFields.src_mac;
+            oxm_basic_match match = oxm_basic_match();
+            match.OFB_ETH_DST = headerFields.dst_mac;
+            match.OFB_ETH_SRC = headerFields.src_mac;
 
-            match->wildcards= 0;
-            match->wildcards |= OFPFW_IN_PORT;
-            match->wildcards |= OFPFW_DL_TYPE;
+            match.wildcards= 0;
+            match.wildcards |= OFPFW_IN_PORT;
+            match.wildcards |= OFPFW_DL_TYPE;
 
 
             TCPSocket * socket = controller->findSocketForChassisId(seg.chassisId);
             //is switch under our control
             if(socket != NULL){
-                sendFlowModMessage(OFPFC_ADD, match, seg.outport, socket,par("flowModIdleTimeOut"),par("flowModHardTimeOut"));
+                sendFlowModMessage(OFPFC_ADD, match, seg.outport, socket,idleTimeout,hardTimeout);
             }
         }
 
@@ -114,10 +117,9 @@ void LLDPBalancedMinHop::receiveSignal(cComponent *src, simsignal_t id, cObject 
 
     //set lldp link
     if(lldpAgent == NULL && controller != NULL){
-        std::list<AbstractControllerApp *> appList = controller->getAppList();
-        std::list<AbstractControllerApp *>::iterator iterApp;
+        auto appList = controller->getAppList();
 
-        for(iterApp=appList.begin();iterApp!=appList.end();++iterApp){
+        for(auto iterApp=appList->begin();iterApp!=appList->end();++iterApp){
             if(dynamic_cast<LLDPAgent *>(*iterApp) != NULL) {
                 LLDPAgent *lldp = (LLDPAgent *) *iterApp;
                 lldpAgent = lldp;

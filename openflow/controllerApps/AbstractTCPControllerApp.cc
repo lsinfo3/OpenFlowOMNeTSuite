@@ -86,12 +86,12 @@ void AbstractTCPControllerApp::handleMessage(cMessage *msg){
     }
 }
 
-TCPSocket * AbstractTCPControllerApp::findSocketFor(cMessage *msg){
+TCPSocket * AbstractTCPControllerApp::findSocketFor(cMessage *msg) {
     TCPCommand *ind = dynamic_cast<TCPCommand *>(msg->getControlInfo());
     if (!ind)
         opp_error("SocketMap: findSocketFor(): no TCPCommand control info in message (not from TCP?)");
-    int connId = ind->getConnId();
-    std::map<int,TCPSocket*>::iterator i = socketMap.find(connId);
+
+    std::map<int,TCPSocket*>::iterator i = socketMap.find(ind->getConnId());
     ASSERT(i==socketMap.end() || i->first==i->second->getConnectionId());
     return (i==socketMap.end()) ? NULL : i->second;
 }

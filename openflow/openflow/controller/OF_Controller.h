@@ -22,12 +22,12 @@ public:
 
     void registerApp(AbstractControllerApp * app);
 
-    TCPSocket *findSocketFor(cMessage *msg);
-    Switch_Info *findSwitchInfoFor(cMessage *msg);
-    TCPSocket *findSocketForChassisId(std::string chassisId);
+    TCPSocket *findSocketFor(cMessage *msg) const;
+    Switch_Info *findSwitchInfoFor(cMessage *msg) ;
+    TCPSocket *findSocketForChassisId(std::string chassisId) const;
 
-    std::list<Switch_Info *> getSwitchesList();
-    std::list<AbstractControllerApp *> getAppList();
+    std::vector<Switch_Info >* getSwitchesList() ;
+    std::vector<AbstractControllerApp *>* getAppList() ;
 
 
 
@@ -52,8 +52,9 @@ protected:
     bool busy;
     double serviceTime;
     std::list<cMessage *> msgList;
-    std::list<Switch_Info *> switchesList;
-    std::list<AbstractControllerApp *> apps;
+
+    std::vector<Switch_Info > switchesList;
+    std::vector<AbstractControllerApp *> apps;
 
     TCPSocket socket;
 

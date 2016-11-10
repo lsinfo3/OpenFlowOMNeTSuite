@@ -9,6 +9,8 @@ using namespace __gnu_cxx;
 class LLDPMib {
     public:
         LLDPMib();
+        LLDPMib(int sPort, int dPort,std::string sID,std::string dID,SimTime exp);
+
         std::string getDstId() const;
         void setDstId(std::string dstId);
         int getDstPort() const;

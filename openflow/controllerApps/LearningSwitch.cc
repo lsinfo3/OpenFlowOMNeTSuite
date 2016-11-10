@@ -13,6 +13,8 @@ LearningSwitch::~LearningSwitch(){
 
 void LearningSwitch::initialize(){
     AbstractControllerApp::initialize();
+    idleTimeout = par("flowModIdleTimeOut");
+    hardTimeout = par("flowModHardTimeOut");
 }
 
 void LearningSwitch::receiveSignal(cComponent *src, simsignal_t id, cObject *obj) {
@@ -33,53 +35,45 @@ void LearningSwitch::doSwitching(OFP_Packet_In *packet_in_msg){
     CommonHeaderFields headerFields = extractCommonHeaderFields(packet_in_msg);
 
     //search map for source mac address and enter
-    if(lookUpMacAddress(headerFields.src_mac, headerFields.swInfo) == NULL){
-        LearningSwitchMapping * mapping = new LearningSwitchMapping();
-        mapping->setSwInfo(headerFields.swInfo);
-        mapping->setAddress(headerFields.src_mac);
-        mapping->setInPort(headerFields.inport);
-        mappingList.push_front(mapping);
+    if(lookupTable.count(headerFields.swInfo)<=0){
+        lookupTable[headerFields.swInfo]= std::map<MACAddress,uint32_t>();
+        lookupTable[headerFields.swInfo][headerFields.src_mac] = headerFields.inport;
+    } else {
+        if(lookupTable[headerFields.swInfo].count(headerFields.src_mac)<=0){
+            lookupTable[headerFields.swInfo][headerFields.src_mac] = headerFields.inport;
+        }
     }
 
-    //search map for dest mac address and switch
-    LearningSwitchMapping * destMapping= lookUpMacAddress(headerFields.dst_mac, headerFields.swInfo);
-    if(destMapping == NULL){
-        //Destination not found -> flood
+
+    if(lookupTable.count(headerFields.swInfo)<=0){
         floodPacket(packet_in_msg);
     } else {
-        uint32_t outport = destMapping->getInPort();
+        if(lookupTable[headerFields.swInfo].count(headerFields.dst_mac)<=0){
+            floodPacket(packet_in_msg);
+        } else {
+            uint32_t outport = lookupTable[headerFields.swInfo][headerFields.dst_mac];
 
-        oxm_basic_match *match = new oxm_basic_match();
-        match->OFB_ETH_DST = headerFields.dst_mac;
-        match->OFB_ETH_TYPE = headerFields.eth_type;
-        match->OFB_ETH_SRC = headerFields.src_mac;
-        match->OFB_IN_PORT = headerFields.inport;
+            oxm_basic_match match = oxm_basic_match();
+            match.OFB_ETH_DST = headerFields.dst_mac;
+            match.OFB_ETH_TYPE = headerFields.eth_type;
+            match.OFB_ETH_SRC = headerFields.src_mac;
+            match.OFB_IN_PORT = headerFields.inport;
 
-        match->wildcards= 0;
-        match->wildcards |= OFPFW_IN_PORT;
-        match->wildcards |=  OFPFW_DL_SRC;
-        match->wildcards |= OFPFW_DL_TYPE;
-
-
-        TCPSocket * socket = controller->findSocketFor(packet_in_msg);
-        sendFlowModMessage(OFPFC_ADD, match, outport, socket,par("flowModIdleTimeOut"),par("flowModHardTimeOut"));
-        sendPacket(packet_in_msg, outport);
-    }
-}
+            match.wildcards= 0;
+            match.wildcards |= OFPFW_IN_PORT;
+            match.wildcards |=  OFPFW_DL_SRC;
+            match.wildcards |= OFPFW_DL_TYPE;
 
 
-LearningSwitchMapping * LearningSwitch::lookUpMacAddress(MACAddress address,Switch_Info * swInfo){
-    LearningSwitchMapping *result = NULL;
-    std::list<LearningSwitchMapping *>::iterator i = mappingList.begin();
-    while (i!=mappingList.end()){
-        if (address.compareTo((*i)->getAddress())==0 && swInfo == (*i)->getSwInfo()){
-            return (*i);
-            break;
+
+            TCPSocket * socket = controller->findSocketFor(packet_in_msg);
+            sendFlowModMessage(OFPFC_ADD, match, outport, socket,idleTimeout,hardTimeout);
+            sendPacket(packet_in_msg, outport);
         }
-        i++;
     }
-    return result;
 }
+
+
 
 
 

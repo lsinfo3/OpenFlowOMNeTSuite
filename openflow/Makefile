@@ -75,6 +75,7 @@ INCLUDE_PATH = \
     -Iscenarios/hyperflow/fattree \
     -Iscenarios/hyperflow/usa \
     -Iscenarios/hyperflow/usa/results \
+    -Iscenarios/hyperflow/usa/results/Scenario_USA_ARP_HF_Ping_5C.ini \
     -Iscenarios/kandoo \
     -Iscenarios/kandoo/fattree \
     -Iscenarios/kandoo/fattree/results \
@@ -82,11 +83,13 @@ INCLUDE_PATH = \
     -Iscenarios/kandoo/usa/results \
     -Iscenarios/testcases \
     -Iscenarios/testcases/results \
+    -Iscenarios/testcases/results/Scenario_TestCase_Diamond.ini \
+    -Iscenarios/testcases/results/Scenario_TestCase_LearningSwitch.ini \
     -Iscenarios/topologyzoo \
     -Iscenarios/topologyzoo/results \
-    -Iscenarios/topologyzoo/results/Agis_KN.ini \
     -Iscenarios/usa \
     -Iscenarios/usa/results \
+    -Iscenarios/usa/results/Scenario_USA_ARP_Ping_Drop.ini \
     -Iutility
 
 # Additional object and library files to link with
@@ -110,7 +113,6 @@ OBJS = \
     $O/controllerApps/LLDPMibGraph.o \
     $O/controllerApps/LLDPBalancedMinHop.o \
     $O/controllerApps/LearningSwitch.o \
-    $O/controllerApps/LearningSwitchMapping.o \
     $O/controllerApps/AbstractTCPControllerApp.o \
     $O/controllerApps/LLDPAgent.o \
     $O/controllerApps/Hub.o \
@@ -267,6 +269,7 @@ clean:
 	$(Q)-rm -f scenarios/hyperflow/fattree/*_m.cc scenarios/hyperflow/fattree/*_m.h
 	$(Q)-rm -f scenarios/hyperflow/usa/*_m.cc scenarios/hyperflow/usa/*_m.h
 	$(Q)-rm -f scenarios/hyperflow/usa/results/*_m.cc scenarios/hyperflow/usa/results/*_m.h
+	$(Q)-rm -f scenarios/hyperflow/usa/results/Scenario_USA_ARP_HF_Ping_5C.ini/*_m.cc scenarios/hyperflow/usa/results/Scenario_USA_ARP_HF_Ping_5C.ini/*_m.h
 	$(Q)-rm -f scenarios/kandoo/*_m.cc scenarios/kandoo/*_m.h
 	$(Q)-rm -f scenarios/kandoo/fattree/*_m.cc scenarios/kandoo/fattree/*_m.h
 	$(Q)-rm -f scenarios/kandoo/fattree/results/*_m.cc scenarios/kandoo/fattree/results/*_m.h
@@ -274,11 +277,13 @@ clean:
 	$(Q)-rm -f scenarios/kandoo/usa/results/*_m.cc scenarios/kandoo/usa/results/*_m.h
 	$(Q)-rm -f scenarios/testcases/*_m.cc scenarios/testcases/*_m.h
 	$(Q)-rm -f scenarios/testcases/results/*_m.cc scenarios/testcases/results/*_m.h
+	$(Q)-rm -f scenarios/testcases/results/Scenario_TestCase_Diamond.ini/*_m.cc scenarios/testcases/results/Scenario_TestCase_Diamond.ini/*_m.h
+	$(Q)-rm -f scenarios/testcases/results/Scenario_TestCase_LearningSwitch.ini/*_m.cc scenarios/testcases/results/Scenario_TestCase_LearningSwitch.ini/*_m.h
 	$(Q)-rm -f scenarios/topologyzoo/*_m.cc scenarios/topologyzoo/*_m.h
 	$(Q)-rm -f scenarios/topologyzoo/results/*_m.cc scenarios/topologyzoo/results/*_m.h
-	$(Q)-rm -f scenarios/topologyzoo/results/Agis_KN.ini/*_m.cc scenarios/topologyzoo/results/Agis_KN.ini/*_m.h
 	$(Q)-rm -f scenarios/usa/*_m.cc scenarios/usa/*_m.h
 	$(Q)-rm -f scenarios/usa/results/*_m.cc scenarios/usa/results/*_m.h
+	$(Q)-rm -f scenarios/usa/results/Scenario_USA_ARP_Ping_Drop.ini/*_m.cc scenarios/usa/results/Scenario_USA_ARP_Ping_Drop.ini/*_m.h
 	$(Q)-rm -f utility/*_m.cc utility/*_m.h
 
 cleanall: clean
@@ -286,7 +291,7 @@ cleanall: clean
 
 depend:
 	$(qecho) Creating dependencies...
-	$(Q)$(MAKEDEPEND) $(INCLUDE_PATH) -f Makefile -P\$$O/ -- $(MSG_CC_FILES)  ./*.cc controllerApps/*.cc hostApps/*.cc hyperflow/*.cc images/*.cc kandoo/*.cc messages/*.cc modifiedInetFiles/*.cc networks/*.cc nodes/*.cc openflow/*.cc openflow/controller/*.cc openflow/protocol/*.cc openflow/switch/*.cc scenarios/*.cc scenarios/fattree/*.cc scenarios/hyperflow/*.cc scenarios/hyperflow/fattree/*.cc scenarios/hyperflow/usa/*.cc scenarios/hyperflow/usa/results/*.cc scenarios/kandoo/*.cc scenarios/kandoo/fattree/*.cc scenarios/kandoo/fattree/results/*.cc scenarios/kandoo/usa/*.cc scenarios/kandoo/usa/results/*.cc scenarios/testcases/*.cc scenarios/testcases/results/*.cc scenarios/topologyzoo/*.cc scenarios/topologyzoo/results/*.cc scenarios/topologyzoo/results/Agis_KN.ini/*.cc scenarios/usa/*.cc scenarios/usa/results/*.cc utility/*.cc
+	$(Q)$(MAKEDEPEND) $(INCLUDE_PATH) -f Makefile -P\$$O/ -- $(MSG_CC_FILES)  ./*.cc controllerApps/*.cc hostApps/*.cc hyperflow/*.cc images/*.cc kandoo/*.cc messages/*.cc modifiedInetFiles/*.cc networks/*.cc nodes/*.cc openflow/*.cc openflow/controller/*.cc openflow/protocol/*.cc openflow/switch/*.cc scenarios/*.cc scenarios/fattree/*.cc scenarios/hyperflow/*.cc scenarios/hyperflow/fattree/*.cc scenarios/hyperflow/usa/*.cc scenarios/hyperflow/usa/results/*.cc scenarios/hyperflow/usa/results/Scenario_USA_ARP_HF_Ping_5C.ini/*.cc scenarios/kandoo/*.cc scenarios/kandoo/fattree/*.cc scenarios/kandoo/fattree/results/*.cc scenarios/kandoo/usa/*.cc scenarios/kandoo/usa/results/*.cc scenarios/testcases/*.cc scenarios/testcases/results/*.cc scenarios/testcases/results/Scenario_TestCase_Diamond.ini/*.cc scenarios/testcases/results/Scenario_TestCase_LearningSwitch.ini/*.cc scenarios/topologyzoo/*.cc scenarios/topologyzoo/results/*.cc scenarios/usa/*.cc scenarios/usa/results/*.cc scenarios/usa/results/Scenario_USA_ARP_Ping_Drop.ini/*.cc utility/*.cc
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 $O/controllerApps/ARPResponder.o: controllerApps/ARPResponder.cc \
@@ -484,25 +489,12 @@ $O/controllerApps/LearningSwitch.o: controllerApps/LearningSwitch.cc \
 	$(INET_PROJ)/src/transport/contract/TCPSocket.h \
 	controllerApps/AbstractControllerApp.h \
 	controllerApps/LearningSwitch.h \
-	controllerApps/LearningSwitchMapping.h \
 	messages/OFP_Flow_Mod_m.h \
 	messages/OFP_Hello_m.h \
 	messages/OFP_Packet_In_m.h \
 	messages/OFP_Packet_Out_m.h \
 	messages/Open_Flow_Message_m.h \
 	openflow/controller/OF_Controller.h \
-	openflow/controller/Switch_Info.h \
-	openflow/protocol/openflow.h
-$O/controllerApps/LearningSwitchMapping.o: controllerApps/LearningSwitchMapping.cc \
-	$(INET_PROJ)/src/base/Compat.h \
-	$(INET_PROJ)/src/base/INETDefs.h \
-	$(INET_PROJ)/src/linklayer/contract/MACAddress.h \
-	$(INET_PROJ)/src/networklayer/contract/IPv4Address.h \
-	$(INET_PROJ)/src/networklayer/contract/IPv6Address.h \
-	$(INET_PROJ)/src/networklayer/contract/IPvXAddress.h \
-	$(INET_PROJ)/src/transport/contract/TCPCommand_m.h \
-	$(INET_PROJ)/src/transport/contract/TCPSocket.h \
-	controllerApps/LearningSwitchMapping.h \
 	openflow/controller/Switch_Info.h \
 	openflow/protocol/openflow.h
 $O/hostApps/LocalityPingAppRandom.o: hostApps/LocalityPingAppRandom.cc \
@@ -1067,6 +1059,8 @@ $O/openflow/switch/Flow_Table.o: openflow/switch/Flow_Table.cc \
 	$(INET_PROJ)/src/linklayer/ethernet/Ethernet.h \
 	$(INET_PROJ)/src/networklayer/arp/ARPPacket_m.h \
 	$(INET_PROJ)/src/networklayer/contract/IPv4Address.h \
+	messages/OFP_Flow_Mod_m.h \
+	messages/Open_Flow_Message_m.h \
 	openflow/protocol/openflow.h \
 	openflow/switch/Flow_Table.h \
 	openflow/switch/Flow_Table_Entry.h
@@ -1079,6 +1073,8 @@ $O/openflow/switch/Flow_Table_Entry.o: openflow/switch/Flow_Table_Entry.cc \
 	$(INET_PROJ)/src/linklayer/ethernet/Ethernet.h \
 	$(INET_PROJ)/src/networklayer/arp/ARPPacket_m.h \
 	$(INET_PROJ)/src/networklayer/contract/IPv4Address.h \
+	messages/OFP_Flow_Mod_m.h \
+	messages/Open_Flow_Message_m.h \
 	openflow/protocol/openflow.h \
 	openflow/switch/Flow_Table_Entry.h
 $O/openflow/switch/OF_Switch.o: openflow/switch/OF_Switch.cc \
@@ -1149,6 +1145,7 @@ $O/utility/OpenFlowGraphAnalyzer.o: utility/OpenFlowGraphAnalyzer.cc \
 	$(INET_PROJ)/src/networklayer/contract/IPvXAddress.h \
 	$(INET_PROJ)/src/transport/contract/TCPCommand_m.h \
 	$(INET_PROJ)/src/transport/contract/TCPSocket.h \
+	messages/OFP_Flow_Mod_m.h \
 	messages/Open_Flow_Message_m.h \
 	openflow/protocol/openflow.h \
 	openflow/switch/Buffer.h \
@@ -1168,6 +1165,7 @@ $O/utility/StaticSpanningTree.o: utility/StaticSpanningTree.cc \
 	$(INET_PROJ)/src/networklayer/contract/IPvXAddress.h \
 	$(INET_PROJ)/src/transport/contract/TCPCommand_m.h \
 	$(INET_PROJ)/src/transport/contract/TCPSocket.h \
+	messages/OFP_Flow_Mod_m.h \
 	messages/Open_Flow_Message_m.h \
 	openflow/protocol/openflow.h \
 	openflow/switch/Buffer.h \

@@ -83,8 +83,7 @@ void OF_Switch::initialize(){
     }
 
     //init helper classes
-    buffer = new Buffer((int)par("bufferCapacity"));
-    flowTable = new Flow_Table();
+    buffer = Buffer((int)par("bufferCapacity"));
 
     //init socket to controller
     const char *localAddress = par("localAddress");
@@ -118,7 +117,7 @@ void OF_Switch::handleMessage(cMessage *msg){
 
     if (msg->isSelfMessage()){
         if (msg->getKind()==MSGKIND_CONNECT) {
-            EV << "starting session\n";
+            EV << "starting session" << '\n';
             connect(""); // active OPEN
         } else if(msg->getKind()==MSGKIND_SERVICETIME){
             //This is message which has been scheduled due to service time
@@ -162,7 +161,7 @@ void OF_Switch::handleMessage(cMessage *msg){
                 scheduleAt(simTime()+serviceTime, event);
             }
             emit(queueSize,msgList.size());
-            emit(bufferSize,buffer->size());
+            emit(bufferSize,buffer.size());
         }
     }
 }
@@ -228,22 +227,22 @@ void OF_Switch::processQueuedMsg(cMessage *data_msg){
 }
 
 void OF_Switch::processFrame(EthernetIIFrame *frame){
-    oxm_basic_match *match = new oxm_basic_match();
+    oxm_basic_match match = oxm_basic_match();
 
     //extract match fields
-    match->OFB_IN_PORT = frame->getArrivalGate()->getIndex();
-    match->OFB_ETH_SRC = frame->getSrc();
-    match->OFB_ETH_DST = frame->getDest();
-    match->OFB_ETH_TYPE = frame->getEtherType();
+    match.OFB_IN_PORT = frame->getArrivalGate()->getIndex();
+    match.OFB_ETH_SRC = frame->getSrc();
+    match.OFB_ETH_DST = frame->getDest();
+    match.OFB_ETH_TYPE = frame->getEtherType();
 
     //extract ARP specific match fields if present
     if(frame->getEtherType()==ETHERTYPE_ARP){
         ARPPacket *arpPacket = check_and_cast<ARPPacket *>(frame->getEncapsulatedPacket());
-        match->OFB_ARP_OP = arpPacket->getOpcode();
-        match->OFB_ARP_SHA = arpPacket->getSrcMACAddress();
-        match->OFB_ARP_THA = arpPacket->getDestMACAddress();
-        match->OFB_ARP_SPA = arpPacket->getSrcIPAddress();
-        match->OFB_ARP_TPA = arpPacket->getDestIPAddress();
+        match.OFB_ARP_OP = arpPacket->getOpcode();
+        match.OFB_ARP_SHA = arpPacket->getSrcMACAddress();
+        match.OFB_ARP_THA = arpPacket->getDestMACAddress();
+        match.OFB_ARP_SPA = arpPacket->getSrcIPAddress();
+        match.OFB_ARP_TPA = arpPacket->getDestIPAddress();
     }
 
     unsigned long hash =0;
@@ -260,11 +259,11 @@ void OF_Switch::processFrame(EthernetIIFrame *frame){
     }
 
 
-   Flow_Table_Entry *lookup = flowTable->lookup(match);
+   Flow_Table_Entry *lookup = flowTable.lookup(match);
    if (lookup != NULL){
        //lookup successful
        flowTableHit++;
-       EV << "Found entry in flow table.\n" << endl;
+       EV << "Found entry in flow table." << '\n';
        ofp_action_output action_output = lookup->getInstructions();
        uint32_t outport = action_output.port;
        if(outport == OFPP_CONTROLLER){
@@ -293,7 +292,7 @@ void OF_Switch::processFrame(EthernetIIFrame *frame){
        }
        // lookup failed
        flowTableMiss++;
-       EV << "No Entry Found contacting controller\n" << endl;
+       EV << "No Entry Found contacting controller" << '\n';
        handleMissMatchedPacket(frame);
    }
 }
@@ -309,11 +308,11 @@ void OF_Switch::handleFeaturesRequestMessage(Open_Flow_Message *of_msg){
 
 
     //output address
-    EV <<"SwitchID:" << mac.str().c_str() << " SwitchPath:" << this->getFullPath() << endl;
+    EV <<"SwitchID:" << mac.str().c_str() << " SwitchPath:" << this->getFullPath() << '\n';
 
 
     featuresReply->setDatapath_id(mac.str().c_str());
-    featuresReply->setN_buffers(buffer->getCapacity());
+    featuresReply->setN_buffers(buffer.getCapacity());
     featuresReply->setN_tables(1);
     featuresReply->setPortsArraySize(gateSize("dataPlaneOut"));
 
@@ -323,41 +322,10 @@ void OF_Switch::handleFeaturesRequestMessage(Open_Flow_Message *of_msg){
 }
 
 void OF_Switch::handleFlowModMessage(Open_Flow_Message *of_msg){
-    EV << "OFA_switch::handleFlowModMessage" << endl;
+    EV << "OFA_switch::handleFlowModMessage" << '\n';
     OFP_Flow_Mod *flowModMsg = (OFP_Flow_Mod *) of_msg;
 
-    //Copy the values
-    oxm_basic_match *match = &flowModMsg->getMatch();
-    oxm_basic_match *copy = new oxm_basic_match();
-    copy->OFB_ETH_DST = match->OFB_ETH_DST;
-    copy->OFB_ETH_SRC = match->OFB_ETH_SRC;
-    copy->OFB_ETH_TYPE = match->OFB_ETH_TYPE;
-    copy->OFB_IN_PORT = match->OFB_IN_PORT;
-    copy->OFB_IPV4_DST = match->OFB_IPV4_DST;
-    copy->wildcards = match->wildcards;
-
-
-    ofp_action_output actions[1];
-    actions[0] = flowModMsg->getActions(0);
-
-
-    //create the entry
-    Flow_Table_Entry *entry = new Flow_Table_Entry();
-    entry->setMatch(copy);
-    entry->setInstructions(actions);
-
-    entry->setPriority(flowModMsg->getPriority());
-    entry->setHardTimeout(flowModMsg->getHard_timeout());
-    entry->setIdleTimeout(flowModMsg->getIdle_timeout());
-
-    if(entry->getIdleTimeout() != 0){
-        entry->setExpiresAt(entry->getIdleTimeout()+simTime());
-    } else {
-        entry->setExpiresAt(entry->getHardTimeout()+simTime());
-    }
-
-
-    flowTable->addEntry(entry);
+    flowTable.addEntry(Flow_Table_Entry(flowModMsg));
 }
 
 
@@ -371,30 +339,30 @@ void OF_Switch::handleMissMatchedPacket(EthernetIIFrame *frame){
 
     packetIn->setByteLength(32);
 
-    if (sendCompletePacket || buffer->isfull()){
+    if (sendCompletePacket || buffer.isfull()){
         // send full packet with packet-in message
         packetIn->encapsulate(frame);
         packetIn->setBuffer_id(OFP_NO_BUFFER);
 
     } else{
         // store packet in buffer and only send header fields
-        oxm_basic_match *match = new oxm_basic_match();
-        match->OFB_IN_PORT = frame->getArrivalGate()->getIndex();
+        oxm_basic_match match = oxm_basic_match();
+        match.OFB_IN_PORT = frame->getArrivalGate()->getIndex();
 
-        match->OFB_ETH_SRC = frame->getSrc();
-        match->OFB_ETH_DST = frame->getDest();
-        match->OFB_ETH_TYPE = frame->getEtherType();
+        match.OFB_ETH_SRC = frame->getSrc();
+        match.OFB_ETH_DST = frame->getDest();
+        match.OFB_ETH_TYPE = frame->getEtherType();
         //extract ARP specific match fields if present
         if(frame->getEtherType()==ETHERTYPE_ARP){
             ARPPacket *arpPacket = check_and_cast<ARPPacket *>(frame->getEncapsulatedPacket());
-            match->OFB_ARP_OP = arpPacket->getOpcode();
-            match->OFB_ARP_SHA = arpPacket->getSrcMACAddress();
-            match->OFB_ARP_THA = arpPacket->getDestMACAddress();
-            match->OFB_ARP_SPA = arpPacket->getSrcIPAddress();
-            match->OFB_ARP_TPA = arpPacket->getDestIPAddress();
+            match.OFB_ARP_OP = arpPacket->getOpcode();
+            match.OFB_ARP_SHA = arpPacket->getSrcMACAddress();
+            match.OFB_ARP_THA = arpPacket->getDestMACAddress();
+            match.OFB_ARP_SPA = arpPacket->getSrcIPAddress();
+            match.OFB_ARP_TPA = arpPacket->getDestIPAddress();
         }
-        packetIn->setMatch(*match);
-        packetIn->setBuffer_id(buffer->storeMessage(frame));
+        packetIn->setMatch(match);
+        packetIn->setBuffer_id(buffer.storeMessage(frame));
     }
     socket.send(packetIn);
 }
@@ -412,16 +380,15 @@ void OF_Switch::handlePacketOutMessage(Open_Flow_Message *of_msg){
     //get the frame
     EthernetIIFrame *frame;
     if(bufferId != OFP_NO_BUFFER){
-        frame = buffer->returnMessage(bufferId);
+        frame = buffer.returnMessage(bufferId);
     } else {
         frame = dynamic_cast<EthernetIIFrame *>(packet_out_msg->getEncapsulatedPacket());
         frame = frame->dup();
     }
 
     //execute
-    for (unsigned int i = 0; i < actions_size; i++){
-        ofp_action_header *action = &(packet_out_msg->getActions(i));
-        executePacketOutAction(action, frame, inPort);
+    for (unsigned int i = 0; i < actions_size; ++i){
+        executePacketOutAction(&(packet_out_msg->getActions(i)), frame, inPort);
     }
 }
 
@@ -432,21 +399,19 @@ void OF_Switch::executePacketOutAction(ofp_action_header *action, EthernetIIFram
     uint32_t outport = action_output->port;
     take(frame);
     if(outport == OFPP_ANY){
-           EV << "Dropping packet" << endl;
+           EV << "Dropping packet" << '\n';
     } else if (outport == OFPP_FLOOD){
-        EV << "Flood Packet\n" << endl;
+        EV << "Flood Packet\n" << '\n';
 
         unsigned int n = gateSize("dataPlaneOut");
-        for (unsigned int i=0; i<n; i++) {
+        for (unsigned int i=0; i<n; ++i) {
             if(i != inport && !(portVector[i].state & OFPPS_BLOCKED)){
-                EthernetIIFrame *copy = frame->dup();
-                send(copy, "dataPlaneOut", i);
+                send(frame->dup(), "dataPlaneOut", i);
             }
         }
     }else {
-        EV << "Send Packet\n" << endl;
-        EthernetIIFrame *copy = frame->dup();
-        send(copy, "dataPlaneOut", outport);
+        EV << "Send Packet\n" << '\n';
+        send(frame->dup(), "dataPlaneOut", outport);
     }
     delete frame;
 }
@@ -454,19 +419,19 @@ void OF_Switch::executePacketOutAction(ofp_action_header *action, EthernetIIFram
 
 // invoked by Spanning Tree module disable ports for broadcast packets
 void OF_Switch::disablePorts(vector<int> ports) {
-    EV << "disablePorts method at " << this->getParentModule()->getFullPath() << endl;
+    EV << "disablePorts method at " << this->getParentModule()->getFullPath() << '\n';
 
-    for (unsigned int i = 0; i<ports.size(); i++){
+    for (unsigned int i = 0; i<ports.size(); ++i){
         portVector[ports[i]].state |= OFPPS_BLOCKED;
     }
 
-    for(unsigned int i=0;i<portVector.size();i++){
-        EV << "Port: " << i << " Value: " << portVector[i].state << endl;
+    for(unsigned int i=0;i<portVector.size();++i){
+        EV << "Port: " << i << " Value: " << portVector[i].state << '\n';
     }
 
     if(par("highlightActivePorts")){
         // Highlight links that belong to spanning tree
-        for (unsigned int i = 0; i < portVector.size(); i++){
+        for (unsigned int i = 0; i < portVector.size(); ++i){
             if (!(portVector[i].state & OFPPS_BLOCKED)){
                 cGate *gateOut = getParentModule()->gate("gateDataPlane$o", i);
                 do {

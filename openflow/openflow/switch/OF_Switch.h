@@ -41,13 +41,14 @@ protected:
     std::vector<ofp_port> portVector;
 
 
-    Buffer *buffer;
-    Flow_Table *flowTable;
+    Buffer buffer;
+    Flow_Table flowTable;
     TCPSocket socket;
 
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
     void connect(const char *connectToAddress);
+
     void processQueuedMsg(cMessage *data_msg);
     void handleFeaturesRequestMessage(Open_Flow_Message *of_msg);
     void handleFlowModMessage(Open_Flow_Message *of_msg);

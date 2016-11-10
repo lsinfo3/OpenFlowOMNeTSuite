@@ -4,7 +4,6 @@
 
 #include <omnetpp.h>
 #include "AbstractControllerApp.h"
-#include "LearningSwitchMapping.h"
 #include "MACAddress.h"
 
 class LearningSwitch:public AbstractControllerApp {
@@ -15,12 +14,14 @@ public:
     ~LearningSwitch();
 
 protected:
-    std::list<LearningSwitchMapping *> mappingList;
     void receiveSignal(cComponent *src, simsignal_t id, cObject *obj);
     void initialize();
     void doSwitching(OFP_Packet_In *packet_in_msg);
-    LearningSwitchMapping * lookUpMacAddress(MACAddress address,Switch_Info * swInfo);
 
+    std::map<Switch_Info *,std::map<MACAddress,uint32_t> > lookupTable;
+
+    int idleTimeout;
+    int hardTimeout;
 
 
 };

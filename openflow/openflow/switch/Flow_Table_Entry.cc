@@ -11,39 +11,55 @@ Flow_Table_Entry::Flow_Table_Entry(){
     hardTimeout = 0.;
 }
 
-flow_table_cookie Flow_Table_Entry::getCookie(){
+Flow_Table_Entry::Flow_Table_Entry(OFP_Flow_Mod *flowModMsg){
+    match = flowModMsg->getMatch();
+
+    instructions[0] = flowModMsg->getActions(0);
+
+    priority = flowModMsg->getPriority();
+    hardTimeout = flowModMsg->getHard_timeout();
+    idleTimeout = flowModMsg->getIdle_timeout();
+
+    if(idleTimeout != 0){
+        expiresAt = idleTimeout+simTime();
+    } else {
+        expiresAt = hardTimeout+simTime();
+    }
+}
+
+flow_table_cookie Flow_Table_Entry::getCookie() const{
     return cookie;
 }
 
-flow_table_counters Flow_Table_Entry::getCounters(){
+flow_table_counters Flow_Table_Entry::getCounters() const{
     return counters;
 }
 
-flow_table_flags Flow_Table_Entry::getFlags(){
+flow_table_flags Flow_Table_Entry::getFlags() const{
     return flags;
 }
 
-double Flow_Table_Entry::getHardTimeout(){
+double Flow_Table_Entry::getHardTimeout() const{
     return hardTimeout;
 }
 
-double Flow_Table_Entry::getIdleTimeout(){
+double Flow_Table_Entry::getIdleTimeout() const{
     return idleTimeout;
 }
 
-SimTime Flow_Table_Entry::getExpiresAt(){
+SimTime Flow_Table_Entry::getExpiresAt() const{
     return expiresAt;
 }
 
-ofp_action_output Flow_Table_Entry::getInstructions(){
+ofp_action_output Flow_Table_Entry::getInstructions() const{
     return instructions[0];
 }
 
-oxm_basic_match* Flow_Table_Entry::getMatch(){
+oxm_basic_match Flow_Table_Entry::getMatch() const{
     return match;
 }
 
-int Flow_Table_Entry::getPriority(){
+int Flow_Table_Entry::getPriority() const{
     return priority;
 }
 
@@ -75,7 +91,7 @@ void Flow_Table_Entry::setInstructions(ofp_action_output instructions[1]){
     this->instructions[0] = instructions[0];
 }
 
-void Flow_Table_Entry::setMatch(oxm_basic_match* match){
+void Flow_Table_Entry::setMatch(oxm_basic_match match){
     this->match = match;
 }
 

@@ -7,6 +7,14 @@ LLDPMib::LLDPMib(){
 
 }
 
+LLDPMib::LLDPMib(int sPort, int dPort,std::string sID,std::string dID,SimTime exp){
+    srcPort = sPort;
+    dstPort = dPort;
+    srcID = sID;
+    dstID = dID;
+    expiresAt = exp;
+}
+
 bool LLDPMib::operator == ( const LLDPMib &b) const{
     return ((strcmp(b.getDstId().c_str(),dstID.c_str())==0
             && strcmp(b.getSrcId().c_str(),srcID.c_str())==0

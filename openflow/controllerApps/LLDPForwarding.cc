@@ -34,6 +34,9 @@ void LLDPForwarding::initialize(){
     cacheHit = 0;
     cacheMiss = 0;
 
+    idleTimeout = par("flowModIdleTimeOut");
+    hardTimeout= par("flowModHardTimeOut");
+
 }
 
 
@@ -54,7 +57,8 @@ void LLDPForwarding::handlePacketIn(OFP_Packet_In * packet_in_msg){
 
 
     //compute path for non arps
-    std::list<LLDPPathSegment> route = computePath(headerFields.swInfo->getMacAddress(),headerFields.dst_mac.str());
+    std::list<LLDPPathSegment> route;
+    computePath(headerFields.swInfo->getMacAddress(),headerFields.dst_mac.str(),route);
 
     //if route empty flood
     if(route.empty()){
@@ -71,16 +75,16 @@ void LLDPForwarding::handlePacketIn(OFP_Packet_In * packet_in_msg){
         sendPacket(packet_in_msg,seg.outport);
 
         //set flow mods for all switches under my controller's command
-        oxm_basic_match *match = new oxm_basic_match();
-        match->OFB_ETH_DST = headerFields.dst_mac;
+        oxm_basic_match match = oxm_basic_match();
+        match.OFB_ETH_DST = headerFields.dst_mac;
 
-        match->wildcards= 0;
-        match->wildcards |= OFPFW_IN_PORT;
-        match->wildcards |=  OFPFW_DL_SRC;
-        match->wildcards |= OFPFW_DL_TYPE;
+        match.wildcards= 0;
+        match.wildcards |= OFPFW_IN_PORT;
+        match.wildcards |=  OFPFW_DL_SRC;
+        match.wildcards |= OFPFW_DL_TYPE;
 
         TCPSocket * socket = controller->findSocketFor(packet_in_msg);
-        sendFlowModMessage(OFPFC_ADD, match, seg.outport, socket,par("flowModIdleTimeOut"),par("flowModHardTimeOut"));
+        sendFlowModMessage(OFPFC_ADD, match, seg.outport, socket,idleTimeout,hardTimeout);
 
         //concatenate route
        computedRoute += seg.chassisId + " -> ";
@@ -89,26 +93,26 @@ void LLDPForwarding::handlePacketIn(OFP_Packet_In * packet_in_msg){
         while(!route.empty()){
             seg = route.front();
             route.pop_front();
-            oxm_basic_match *match = new oxm_basic_match();
-            match->OFB_ETH_DST = headerFields.dst_mac;
+            oxm_basic_match match = oxm_basic_match();
+            match.OFB_ETH_DST = headerFields.dst_mac;
 
-            match->wildcards= 0;
-            match->wildcards |= OFPFW_IN_PORT;
-            match->wildcards |=  OFPFW_DL_SRC;
-            match->wildcards |= OFPFW_DL_TYPE;
+            match.wildcards= 0;
+            match.wildcards |= OFPFW_IN_PORT;
+            match.wildcards |=  OFPFW_DL_SRC;
+            match.wildcards |= OFPFW_DL_TYPE;
 
             computedRoute += seg.chassisId + " -> ";
 
             TCPSocket * socket = controller->findSocketForChassisId(seg.chassisId);
             //is switch under our control
             if(socket != NULL){
-                sendFlowModMessage(OFPFC_ADD, match, seg.outport, socket,par("flowModIdleTimeOut"),par("flowModHardTimeOut"));
+                sendFlowModMessage(OFPFC_ADD, match, seg.outport, socket,idleTimeout,hardTimeout);
             }
         }
 
         //clean up route
         computedRoute.erase(computedRoute.length()-4);
-        EV << "Route:" << computedRoute << endl;
+        EV << "Route:" << computedRoute << '\n';
     }
 
 }
@@ -121,10 +125,9 @@ void LLDPForwarding::receiveSignal(cComponent *src, simsignal_t id, cObject *obj
 
     //set lldp link
     if(lldpAgent == NULL && controller != NULL){
-        std::list<AbstractControllerApp *> appList = controller->getAppList();
-        std::list<AbstractControllerApp *>::iterator iterApp;
+        auto appList = controller->getAppList();
 
-        for(iterApp=appList.begin();iterApp!=appList.end();++iterApp){
+        for(auto iterApp=appList->begin();iterApp!=appList->end();++iterApp){
             if(dynamic_cast<LLDPAgent *>(*iterApp) != NULL) {
                 LLDPAgent *lldp = (LLDPAgent *) *iterApp;
                 lldpAgent = lldp;
@@ -134,7 +137,7 @@ void LLDPForwarding::receiveSignal(cComponent *src, simsignal_t id, cObject *obj
     }
 
     if(id == PacketInSignalId){
-        EV << "LLDPForwarding::PacketIn" << endl;
+        EV << "LLDPForwarding::PacketIn" << '\n';
         if (dynamic_cast<OFP_Packet_In *>(obj) != NULL) {
             OFP_Packet_In *packet_in_msg = (OFP_Packet_In *) obj;
             handlePacketIn(packet_in_msg);
@@ -145,17 +148,17 @@ void LLDPForwarding::receiveSignal(cComponent *src, simsignal_t id, cObject *obj
 
 
 
-std::list<LLDPPathSegment> LLDPForwarding::computePath(std::string srcId, std::string dstId){
+void LLDPForwarding::computePath(std::string srcId, std::string dstId,std::list<LLDPPathSegment> &list){
     LLDPMibGraph *mibGraph = lldpAgent->getMibGraph();
     mibGraph->removeExpiredEntries();
     std::map<std::string, std::vector<LLDPMib> > verticies = mibGraph->getVerticies();
 
-    EV << "Finding Route in " << mibGraph->getNumOfVerticies() << " Verticies and " << mibGraph->getNumOfEdges() << " Edges" << endl;
+    EV << "Finding Route in " << mibGraph->getNumOfVerticies() << " Verticies and " << mibGraph->getNumOfEdges() << " Edges" << '\n';
     if(printMibGraph){
-        EV << mibGraph->getStringGraph() << endl;
+        EV << mibGraph->getStringGraph() << '\n';
     }
 
-    EV << "Version Hit: " << versionHit << " Version Miss: " << versionMiss << " Cache Hit: " << cacheHit << " Cache Miss: " << cacheMiss << endl;
+    EV << "Version Hit: " << versionHit << " Version Miss: " << versionMiss << " Cache Hit: " << cacheHit << " Cache Miss: " << cacheMiss << '\n';
 
     //check for route in cache
     if(lldpAgent->getMibGraph()->getVersion() == version){
@@ -163,9 +166,8 @@ std::list<LLDPPathSegment> LLDPForwarding::computePath(std::string srcId, std::s
         if(routeCache.count(std::pair<std::string,std::string>(srcId,dstId))>0){
             cacheHit++;
             std::list<LLDPPathSegment> tmp = routeCache[std::pair<std::string,std::string>(srcId,dstId)];
-            std::list<LLDPPathSegment> res = std::list<LLDPPathSegment>();
-            std::copy(tmp.begin(),tmp.end(), std::back_inserter(res));
-            return res;
+            std::copy(tmp.begin(),tmp.end(), std::back_inserter(list));
+            return;
         }else {
             cacheMiss++;
         }
@@ -184,7 +186,7 @@ std::list<LLDPPathSegment> LLDPForwarding::computePath(std::string srcId, std::s
 
     //quick check if we have src and target in our graph
     if(verticies.count(srcId)<=0 || verticies.count(dstId)<=0){
-        return result;
+        return;
     }
 
     //dijkstra
@@ -266,7 +268,6 @@ std::list<LLDPPathSegment> LLDPForwarding::computePath(std::string srcId, std::s
         //add to cache
         routeCache[std::pair<std::string,std::string>(srcId,dstId)]=result;
     }
-    std::list<LLDPPathSegment> res2 = std::list<LLDPPathSegment>();
-    std::copy(result.begin(),result.end(), std::back_inserter(res2));
-    return res2;
+    std::copy(result.begin(),result.end(), std::back_inserter(list));
+    return;
 }

@@ -123,10 +123,9 @@ void HyperFlowAgent::sendReportIn(){
     reportIn->setControllerId(controller->getFullPath().c_str());
 
     //copy switches list
-    std::list<Switch_Info *>::iterator iterSw;
-    std::list<Switch_Info *> tempList = controller->getSwitchesList();
-    for(iterSw=tempList.begin();iterSw!=tempList.end();iterSw++){
-        reportIn->getSwitchInfoList().push_front(*iterSw);
+    auto tempList = controller->getSwitchesList();
+    for(auto iterSw=tempList->begin();iterSw!=tempList->end();++iterSw){
+        reportIn->getSwitchInfoList().push_front(&(*iterSw));
     }
 
     reportIn->setByteLength(1+sizeof(reportIn->getSwitchInfoList()));

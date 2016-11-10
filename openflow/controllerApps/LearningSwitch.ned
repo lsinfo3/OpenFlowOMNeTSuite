@@ -20,6 +20,6 @@ simple LearningSwitch like AbstractControllerApp
     parameters:
         @display("i=block/app");
         int flowModHardTimeOut = default(0);
-        int flowModIdleTimeOut = default(1);
+        int flowModIdleTimeOut = default(10);
         
 }

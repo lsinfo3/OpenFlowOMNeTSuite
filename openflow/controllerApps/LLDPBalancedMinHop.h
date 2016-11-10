@@ -40,6 +40,9 @@ protected:
     long cacheHit;
     long cacheMiss;
 
+    int idleTimeout;
+    int hardTimeout;
+
     std::map<std::pair<std::string,std::string>, std::list<LLDPPathSegment> > routeCache;
 };
 

@@ -40,7 +40,7 @@ void AbstractControllerApp::receiveSignal(cComponent *src, simsignal_t id, cObje
 
     //register at controller
     if(id == BootedSignalId){
-        EV << "ARPResponder::Booted" << endl;
+        EV << "ARPResponder::Booted" << '\n';
         if (dynamic_cast<OF_Controller *>(obj) != NULL) {
             OF_Controller *cntrl = (OF_Controller *) obj;
             this->controller = cntrl;
@@ -51,7 +51,7 @@ void AbstractControllerApp::receiveSignal(cComponent *src, simsignal_t id, cObje
 }
 
 void AbstractControllerApp::floodPacket(OFP_Packet_In *packet_in_msg){
-    EV << "floodPacket" << endl;
+    EV << "floodPacket" << '\n';
     packetsFlooded++;
 
     TCPSocket *socket = controller->findSocketFor(packet_in_msg);
@@ -59,7 +59,7 @@ void AbstractControllerApp::floodPacket(OFP_Packet_In *packet_in_msg){
 }
 
 void AbstractControllerApp::dropPacket(OFP_Packet_In *packet_in_msg){
-    EV << "dropPacket" << endl;
+    EV << "dropPacket" << '\n';
     packetsDropped++;
 
     TCPSocket *socket = controller->findSocketFor(packet_in_msg);
@@ -68,15 +68,15 @@ void AbstractControllerApp::dropPacket(OFP_Packet_In *packet_in_msg){
 
 
 void AbstractControllerApp::sendPacket(OFP_Packet_In *packet_in_msg, uint32_t outport){
-    EV << "sendPacket" << endl;
+    EV << "sendPacket" << '\n';
     numPacketOut++;
 
     TCPSocket *socket = controller->findSocketFor(packet_in_msg);
     socket->send(createPacketOutFromPacketIn(packet_in_msg,outport));
 }
 
-void AbstractControllerApp::sendFlowModMessage(ofp_flow_mod_command mod_com, oxm_basic_match *match, uint32_t outport, TCPSocket * socket, int idleTimeOut =1 , int hardTimeOut=0){
-    EV << "sendFlowModMessage" << endl;
+void AbstractControllerApp::sendFlowModMessage(ofp_flow_mod_command mod_com, const oxm_basic_match &match, uint32_t outport, TCPSocket * socket, int idleTimeOut =1 , int hardTimeOut=0){
+    EV << "sendFlowModMessage" << '\n';
     numFlowMod++;
 
     socket->send(createFlowMod(mod_com,match,outport,idleTimeOut,hardTimeOut));
@@ -92,12 +92,12 @@ void AbstractControllerApp::finish(){
 }
 
 
-OFP_Flow_Mod * AbstractControllerApp::createFlowMod(ofp_flow_mod_command mod_com, oxm_basic_match *match, uint32_t outport, int idleTimeOut =1 , int hardTimeOut=0){
+OFP_Flow_Mod * AbstractControllerApp::createFlowMod(ofp_flow_mod_command mod_com,const oxm_basic_match  &match, uint32_t outport, int idleTimeOut =1 , int hardTimeOut=0){
     OFP_Flow_Mod *flow_mod_msg = new OFP_Flow_Mod("flow_mod");
     flow_mod_msg->getHeader().version = OFP_VERSION;
     flow_mod_msg->getHeader().type = OFPT_FLOW_MOD;
     flow_mod_msg->setCommand(mod_com);
-    flow_mod_msg->setMatch(*match);
+    flow_mod_msg->setMatch(match);
     flow_mod_msg->setByteLength(56);
     flow_mod_msg->setHard_timeout(hardTimeOut);
     flow_mod_msg->setIdle_timeout(idleTimeOut);

@@ -27,7 +27,7 @@ protected:
     void receiveSignal(cComponent *src, simsignal_t id, cObject *obj);
     void initialize();
     virtual void handlePacketIn(OFP_Packet_In * packet_in_msg);
-    virtual std::list<LLDPPathSegment> computePath(std::string srcId, std::string dstId);
+    virtual void computePath(std::string srcId, std::string dstId, std::list<LLDPPathSegment> &list);
 
 
     LLDPAgent * lldpAgent;
@@ -42,6 +42,9 @@ protected:
     long versionMiss;
     long cacheHit;
     long cacheMiss;
+
+    int idleTimeout;
+    int hardTimeout;
 
     std::map<std::pair<std::string,std::string>, std::list<LLDPPathSegment> > routeCache;
 

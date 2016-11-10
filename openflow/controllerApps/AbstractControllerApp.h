@@ -48,14 +48,14 @@ protected:
     virtual OFP_Packet_Out * createFloodPacketFromPacketIn(OFP_Packet_In *packet_in_msg);
     virtual OFP_Packet_Out * createDropPacketFromPacketIn(OFP_Packet_In *packet_in_msg);
     virtual OFP_Packet_Out * createPacketOutFromPacketIn(OFP_Packet_In *packet_in_msg, uint32_t outport);
-    virtual OFP_Flow_Mod * createFlowMod(ofp_flow_mod_command mod_com, oxm_basic_match *match, uint32_t outport,int idleTimeOut, int hardTimeOut);
+    virtual OFP_Flow_Mod * createFlowMod(ofp_flow_mod_command mod_com,const oxm_basic_match &match, uint32_t outport,int idleTimeOut, int hardTimeOut);
 
     virtual CommonHeaderFields extractCommonHeaderFields(OFP_Packet_In *packet_in_msg);
 
     virtual void floodPacket(OFP_Packet_In *packet_in_msg);
     virtual void dropPacket(OFP_Packet_In *packet_in_msg);
     virtual void sendPacket(OFP_Packet_In *packet_in_msg, uint32_t outport);
-    virtual void sendFlowModMessage(ofp_flow_mod_command mod_com, oxm_basic_match *match, uint32_t outport, TCPSocket *socket,int idleTimeOut, int hardTimeOut);
+    virtual void sendFlowModMessage(ofp_flow_mod_command mod_com,const oxm_basic_match &match, uint32_t outport, TCPSocket *socket,int idleTimeOut, int hardTimeOut);
 
 public:
     AbstractControllerApp();

@@ -17,12 +17,10 @@ LLDPMibGraph::LLDPMibGraph(){
 }
 
 const std::string LLDPMibGraph::getStringGraph(){
-    std::map<std::string,std::vector<LLDPMib> >::iterator iterKey;
-    std::vector<LLDPMib>::iterator iterList;
     std::stringstream stream;
 
-    for(iterKey= verticies.begin(); iterKey!= verticies.end();iterKey++){
-        for(iterList=verticies[iterKey->first].begin(); iterList!=verticies[iterKey->first].end(); iterList++){
+    for(auto iterKey= verticies.begin(); iterKey!= verticies.end();iterKey++){
+        for(auto iterList=verticies[iterKey->first].begin(); iterList!=verticies[iterKey->first].end(); iterList++){
             stream << " ("<<iterList->getSrcId() << "," <<iterList->getSrcPort() << ") ->" << "("<<iterList->getDstId() << "," <<iterList->getDstPort() << ") Expires at:"<< iterList->getExpiresAt() << "\n";
         }
     }
@@ -36,8 +34,7 @@ bool LLDPMibGraph::addEntry(std::string src, int srcPort, std::string dst, int d
     if(srcPort == -1){
         if(verticies.count(dst) >0){
             //we have seen this arp before, check if we are the first hop
-            std::vector<LLDPMib>::iterator iterList;
-            for(iterList=verticies[dst].begin();iterList!=verticies[dst].end();iterList++){
+            for(auto iterList=verticies[dst].begin();iterList!=verticies[dst].end();iterList++){
                 if(iterList->getSrcPort() == dstPort && iterList->getDstPort() != -1){
                     return false;
                 }
@@ -49,26 +46,14 @@ bool LLDPMibGraph::addEntry(std::string src, int srcPort, std::string dst, int d
     //check if vertex exists
     if(verticies.count(src) <= 0){
         verticies[src] = std::vector<LLDPMib>();
-        LLDPMib mib = LLDPMib();
-        mib.setDstId(dst);
-        mib.setDstPort(dstPort);
-        mib.setSrcId(src);
-        mib.setSrcPort(srcPort);
-        mib.setExpiresAt(simTime()+timeOut);
-        verticies[src].push_back(mib);
+        verticies[src].push_back(LLDPMib(srcPort,dstPort,src,dst,simTime()+timeOut));
         numOfVerticies++;
         numOfEdges++;
         version++;
     } else {
         //check if entry exists
-        LLDPMib mib = LLDPMib();
-        mib.setDstId(dst);
-        mib.setDstPort(dstPort);
-        mib.setSrcId(src);
-        mib.setSrcPort(srcPort);
-        mib.setExpiresAt(simTime()+timeOut);
-
-        std::vector<LLDPMib >::iterator iterMib = std::find(verticies[src].begin(), verticies[src].end(), mib);
+        LLDPMib mib = LLDPMib(srcPort,dstPort,src,dst,simTime()+timeOut);
+        auto iterMib = std::find(verticies[src].begin(), verticies[src].end(), mib);
         if(iterMib != verticies[src].end()){
             (*iterMib).setExpiresAt(simTime()+timeOut);
         } else {
@@ -82,26 +67,14 @@ bool LLDPMibGraph::addEntry(std::string src, int srcPort, std::string dst, int d
     //check if vertex exists
     if(verticies.count(dst) <= 0){
         verticies[dst] = std::vector<LLDPMib>();
-        LLDPMib mib = LLDPMib();
-        mib.setDstId(src);
-        mib.setDstPort(srcPort);
-        mib.setSrcId(dst);
-        mib.setSrcPort(dstPort);
-        mib.setExpiresAt(simTime()+timeOut);
-        verticies[dst].push_back(mib);
+        verticies[dst].push_back(LLDPMib(dstPort,srcPort,dst,src,simTime()+timeOut));
         numOfVerticies++;
         numOfEdges++;
         version++;
      } else {
         //check if entry exists
-        LLDPMib mib = LLDPMib();
-        mib.setDstId(src);
-        mib.setDstPort(srcPort);
-        mib.setSrcId(dst);
-        mib.setSrcPort(dstPort);
-        mib.setExpiresAt(simTime()+timeOut);
-
-        std::vector<LLDPMib >::iterator iterMib = std::find(verticies[dst].begin(), verticies[dst].end(), mib);
+        LLDPMib mib = LLDPMib(dstPort,srcPort,dst,src,simTime()+timeOut);
+        auto iterMib = std::find(verticies[dst].begin(), verticies[dst].end(), mib);
         if(iterMib != verticies[dst].end()){
             (*iterMib).setExpiresAt(simTime()+timeOut);
         } else {
@@ -116,13 +89,13 @@ bool LLDPMibGraph::addEntry(std::string src, int srcPort, std::string dst, int d
 
 
 void LLDPMibGraph::removeExpiredEntries(){
-    std::map<std::string, std::vector<LLDPMib > >::iterator iterKey = verticies.begin();
-    std::vector<LLDPMib>::iterator iterList;
+    simtime_t curSimTime = simTime();
+    auto iterKey = verticies.begin();
     while(iterKey != verticies.end()){
         //remove expired list entries
-        iterList=iterKey->second.begin();
+        auto iterList=iterKey->second.begin();
         while(iterList != iterKey->second.end()){
-            if(iterList->getExpiresAt() < simTime()){
+            if(iterList->getExpiresAt() < curSimTime){
                 iterKey->second.erase(iterList);
                 iterList--;
                 numOfEdges--;

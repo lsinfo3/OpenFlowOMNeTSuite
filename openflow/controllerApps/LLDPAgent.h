@@ -31,6 +31,8 @@ protected:
     double timeOut;
     LLDPMibGraph mibGraph;
     bool printMibGraph;
+    int idleTimeout;
+    int hardTimeout;
 };
 
 

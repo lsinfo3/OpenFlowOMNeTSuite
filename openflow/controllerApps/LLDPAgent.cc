@@ -21,6 +21,9 @@ void LLDPAgent::initialize(){
     timeOut = par("timeOut");
     printMibGraph = par("printMibGraph");
 
+    idleTimeout = par("flowModIdleTimeOut");
+    hardTimeout = par("flowModHardTimeOut");
+
 }
 
 
@@ -42,24 +45,23 @@ void LLDPAgent::sendLLDP(){
 
     int j=0;
     //iterate over all switches controlled by the controller
-    std::list<Switch_Info *> list = controller->getSwitchesList();
-    std::list<Switch_Info *>::iterator i;
-    for(i=list.begin(); i != list.end(); ++i) {
-        if(strcmp((*i)->getMacAddress().c_str(),"")==0){
+    auto list = controller->getSwitchesList();
+    for(auto i=list->begin(); i != list->end(); ++i) {
+        if(strcmp((*i).getMacAddress().c_str(),"")==0){
             //only use full connections
             continue;
         }
 
-        TCPSocket *socket = (*i)->getSocket();
+        TCPSocket *socket = (*i).getSocket();
         //iterate over all ports
-        for(j=0;j<(*i)->getNumOfPorts();j++){
+        for(j=0;j<(*i).getNumOfPorts();++j){
             LLDP *lldpPacket = new LLDP("LLDP");
             lldpPacket->setPortID(j);
-            lldpPacket->setChassisID((*i)->getMacAddress().c_str());
+            lldpPacket->setChassisID((*i).getMacAddress().c_str());
 
             EtherFrame *frame = NULL;
             EthernetIIFrame *eth2Frame = new EthernetIIFrame(lldpPacket->getName());
-            eth2Frame->setSrc(MACAddress((*i)->getMacAddress().c_str()));  // if blank, will be filled in by MAC
+            eth2Frame->setSrc(MACAddress((*i).getMacAddress().c_str()));  // if blank, will be filled in by MAC
             //eth2Frame->setDest(MACAddress("01:80:c2:00:00:0e"));
             //make up an address as inet will accept multicast frames and does not know what to do with a lldp frame and thus fails
             eth2Frame->setDest(MACAddress("AA:80:c2:00:00:0e"));
@@ -104,7 +106,7 @@ void LLDPAgent::handlePacketIn(OFP_Packet_In * packet_in_msg){
             LLDP *lldp = (LLDP *) frame->getEncapsulatedPacket();
             mibGraph.addEntry(lldp->getChassisID(),lldp->getPortID(),headerFields.swInfo->getMacAddress(),headerFields.inport,timeOut);
             if(printMibGraph){
-                EV << mibGraph.getStringGraph() << endl;
+                EV << mibGraph.getStringGraph() << '\n';
             }
 
         } else {
@@ -116,21 +118,21 @@ void LLDPAgent::handlePacketIn(OFP_Packet_In * packet_in_msg){
          //this could be a packet originating from an end device, check if the port is associated with an lldp entry
          mibGraph.addEntry(headerFields.src_mac.str(),-1,headerFields.swInfo->getMacAddress(),headerFields.inport,timeOut);
          if(printMibGraph){
-             EV << mibGraph.getStringGraph() << endl;
+             EV << mibGraph.getStringGraph() << '\n';
          }
      }
 }
 
 void LLDPAgent::triggerFlowMod(Switch_Info * swInfo) {
     uint32_t outport = OFPP_CONTROLLER;
-    oxm_basic_match *match = new oxm_basic_match();
-    match->OFB_ETH_TYPE = 0x88CC;
-    match->wildcards= 0;
-    match->wildcards |= OFPFW_IN_PORT;
-    match->wildcards |=  OFPFW_DL_SRC;
-    match->wildcards |=  OFPFW_DL_DST;
+    oxm_basic_match match = oxm_basic_match();
+    match.OFB_ETH_TYPE = 0x88CC;
+    match.wildcards= 0;
+    match.wildcards |= OFPFW_IN_PORT;
+    match.wildcards |=  OFPFW_DL_SRC;
+    match.wildcards |=  OFPFW_DL_DST;
 
-    sendFlowModMessage(OFPFC_ADD, match, outport, swInfo->getSocket(),par("flowModIdleTimeOut"),par("flowModHardTimeOut"));
+    sendFlowModMessage(OFPFC_ADD, match, outport, swInfo->getSocket(),idleTimeout,hardTimeout);
 }
 
 void LLDPAgent::receiveSignal(cComponent *src, simsignal_t id, cObject *obj) {

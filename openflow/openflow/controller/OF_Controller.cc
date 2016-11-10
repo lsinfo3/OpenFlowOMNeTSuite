@@ -213,66 +213,65 @@ void OF_Controller::registerConnection(Open_Flow_Message *msg){
     if(!socket){
         socket = new TCPSocket(msg);
         socket->setOutputGate(gate("tcpOut"));
-        Switch_Info *swInfo = new Switch_Info();
-        swInfo->setSocket(socket);
-        swInfo->setConnId(socket->getConnectionId());
-        swInfo->setMacAddress("");
-        swInfo->setNumOfPorts(-1);
-        swInfo->setVersion(msg->getHeader().version);
-        switchesList.push_front(swInfo);
+        Switch_Info swInfo = Switch_Info();
+        swInfo.setSocket(socket);
+        swInfo.setConnId(socket->getConnectionId());
+        swInfo.setMacAddress("");
+        swInfo.setNumOfPorts(-1);
+        swInfo.setVersion(msg->getHeader().version);
+        switchesList.push_back(swInfo);
     }
 }
 
 
-TCPSocket *OF_Controller::findSocketFor(cMessage *msg){
+TCPSocket *OF_Controller::findSocketFor(cMessage *msg) const{
     TCPCommand *ind = dynamic_cast<TCPCommand *>(msg->getControlInfo());
     if (!ind)
         opp_error("TCPSocketMap: findSocketFor(): no TCPCommand control info in message (not from TCP?)");
+
     int connId = ind->getConnId();
-    list<Switch_Info *>::iterator i;
-    for(i=switchesList.begin(); i != switchesList.end(); ++i) {
-        if((*i)->getConnId() == connId){
-            return (*i)->getSocket();
+    for(auto i=switchesList.begin(); i != switchesList.end(); ++i) {
+        if((*i).getConnId() == connId){
+            return (*i).getSocket();
         }
     }
     return NULL;
 }
 
 
-Switch_Info *OF_Controller::findSwitchInfoFor(cMessage *msg){
+Switch_Info *OF_Controller::findSwitchInfoFor(cMessage *msg) {
     TCPCommand *ind = dynamic_cast<TCPCommand *>(msg->getControlInfo());
     if (!ind)
         return NULL;
+
     int connId = ind->getConnId();
-    list<Switch_Info *>::iterator i;
-    for(i=switchesList.begin(); i != switchesList.end(); ++i) {
-        if((*i)->getConnId() == connId){
-            return (*i);
+    for(auto i=switchesList.begin(); i != switchesList.end(); ++i) {
+        if((*i).getConnId() == connId){
+            return &(*i);
         }
     }
     return NULL;
 }
 
-TCPSocket *OF_Controller::findSocketForChassisId(std::string chassisId){
-    list<Switch_Info *>::iterator i;
-    for(i=switchesList.begin(); i != switchesList.end(); ++i) {
-        if(strcmp((*i)->getMacAddress().c_str(),chassisId.c_str())==0){
-            return (*i)->getSocket();
+TCPSocket *OF_Controller::findSocketForChassisId(std::string chassisId) const{
+    for(auto i=switchesList.begin(); i != switchesList.end(); ++i) {
+        if(strcmp((*i).getMacAddress().c_str(),chassisId.c_str())==0){
+            return (*i).getSocket();
         }
     }
     return NULL;
 }
 
 void OF_Controller::registerApp(AbstractControllerApp *app){
-    apps.push_front(app);
+    apps.push_back(app);
 }
 
-std::list<Switch_Info *> OF_Controller::getSwitchesList(){
-    return switchesList;
+std::vector<Switch_Info >* OF_Controller::getSwitchesList() {
+    return &switchesList;
 }
 
-std::list<AbstractControllerApp *> OF_Controller::getAppList(){
-    return apps;
+std::vector<AbstractControllerApp *>* OF_Controller::getAppList() {
+    return &apps;
 }
 
 void OF_Controller::finish(){

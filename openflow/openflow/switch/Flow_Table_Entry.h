@@ -4,9 +4,9 @@
 #define FLOW_TABLE_ENTRY_H_
 
 #include <openflow.h>
+#include <OFP_Flow_Mod_m.h>
 
 using namespace __gnu_cxx;
-
 
 
 
@@ -45,15 +45,17 @@ struct ltmatch{
 class Flow_Table_Entry {
     public:
         Flow_Table_Entry();
-        flow_table_cookie getCookie();
-        flow_table_counters getCounters();
-        flow_table_flags getFlags();
-        double getHardTimeout();
-        double getIdleTimeout();
-        SimTime getExpiresAt();
-        ofp_action_output getInstructions();
-        oxm_basic_match *getMatch();
-        int getPriority();
+        Flow_Table_Entry(OFP_Flow_Mod *flowModMsg);
+
+        flow_table_cookie getCookie() const;
+        flow_table_counters getCounters() const;
+        flow_table_flags getFlags() const;
+        double getHardTimeout() const;
+        double getIdleTimeout() const;
+        SimTime getExpiresAt() const;
+        ofp_action_output getInstructions() const;
+        oxm_basic_match getMatch() const;
+        int getPriority() const;
 
         void setCookie(flow_table_cookie cookie);
         void setCounters(flow_table_counters counters);
@@ -62,11 +64,11 @@ class Flow_Table_Entry {
         void setIdleTimeout(double idleTimeout);
         void setExpiresAt(SimTime expiresAt);
         void setInstructions(ofp_action_output instructions[1]);
-        void setMatch(oxm_basic_match *match);
+        void setMatch(oxm_basic_match match);
         void setPriority(int priority);
 
     protected:
-        oxm_basic_match *match;
+        oxm_basic_match match;
         flow_table_counters counters;
         ofp_action_output instructions[1];
         flow_table_cookie cookie;

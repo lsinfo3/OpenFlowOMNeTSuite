@@ -11,15 +11,15 @@ class Switch_Info {
     public:
         Switch_Info();
 
-        int getConnId();
+        int getConnId() const;
         void setConnId(int connId);
-        int getVersion();
+        int getVersion() const;
         void setVersion(int version);
-        std::string getMacAddress();
+        std::string getMacAddress() const;
         void setMacAddress(std::string macAddress);
-        int getNumOfPorts();
+        int getNumOfPorts() const;
         void setNumOfPorts(int numOfPorts);
-        TCPSocket* getSocket();
+        TCPSocket* getSocket() const;
         void setSocket(TCPSocket* socket);
 
 
