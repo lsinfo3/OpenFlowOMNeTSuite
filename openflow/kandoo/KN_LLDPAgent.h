@@ -23,6 +23,9 @@ public:
     ~KN_LLDPAgent();
     LLDPMibGraph * getMibGraph();
 
+private:
+    simsignal_t timeDiff_signal;
+
 protected:
     void receiveSignal(cComponent *src, simsignal_t id, cObject *obj);
     void initialize();

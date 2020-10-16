@@ -25,6 +25,8 @@ void KN_LLDPAgent::initialize(){
     kandooEventSignalId =registerSignal("KandooEvent");
     getParentModule()->subscribe("KandooEvent",this);
 
+    timeDiff_signal = registerSignal("timeDiff");
+
 }
 
 
@@ -54,6 +56,7 @@ void KN_LLDPAgent::handlePacketIn(OFP_Packet_In * packet_in_msg){
                 wrapper->setDstPort(headerFields.inport);
                 wrapper->setSrcId(lldp->getChassisID());
                 wrapper->setSrcPort(lldp->getPortID());
+                wrapper->setTimestamp(simTime().dbl());
 
                 KandooEntry entry = KandooEntry();
                 entry.srcApp = "KN_LLDPAgent";
@@ -85,6 +88,7 @@ void KN_LLDPAgent::handlePacketIn(OFP_Packet_In * packet_in_msg){
              wrapper->setDstPort(headerFields.inport);
              wrapper->setSrcId(headerFields.src_mac.str());
              wrapper->setSrcPort(-1);
+             wrapper->setTimestamp(simTime().dbl());
 
              KandooEntry entry = KandooEntry();
              entry.srcApp = "KN_LLDPAgent";
@@ -134,6 +138,8 @@ void KN_LLDPAgent::receiveSignal(cComponent *src, simsignal_t id, cObject *obj) 
                     if (dynamic_cast<LLDP_Wrapper *>(knpck->getKnEntry().payload) != NULL) {
                         LLDP_Wrapper *wrapper = (LLDP_Wrapper *) knpck->getKnEntry().payload;
                         mibGraph.addEntry(wrapper->getSrcId(),wrapper->getSrcPort(),wrapper->getDstId(),wrapper->getDstPort(),timeOut);
+                        double timeDifference =  simTime().dbl() - wrapper->getTimestamp();
+                        emit(timeDiff_signal, timeDifference);
                         if(printMibGraph){
                             EV << mibGraph.getStringGraph() << endl;
                         }

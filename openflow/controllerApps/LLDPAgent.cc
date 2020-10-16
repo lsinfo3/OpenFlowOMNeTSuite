@@ -17,6 +17,7 @@ LLDPAgent::~LLDPAgent(){
 
 void LLDPAgent::initialize(){
     AbstractControllerApp::initialize();
+
     pollInterval = par("pollInterval");
     timeOut = par("timeOut");
     printMibGraph = par("printMibGraph");

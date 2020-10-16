@@ -21,14 +21,15 @@ public:
     void setSrcId(const string& srcId);
     int getSrcPort() const;
     void setSrcPort(int srcPort);
-
+    double getTimestamp() const;
+    void setTimestamp(double timestamp);
 
 protected:
     string dstId;
     string srcId;
     int dstPort;
     int srcPort;
-
+    double timestamp;
 };
 
 

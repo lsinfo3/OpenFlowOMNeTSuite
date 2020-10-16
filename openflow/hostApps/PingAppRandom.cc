@@ -37,18 +37,24 @@ void PingAppRandom::handleMessage(cMessage *msg){
         }
         if (msg == timer){
             // connect to random destination node
-            int random_num = intrand(topo.getNumNodes());
-            connectAddress =topo.getNode(random_num)->getModule()->getFullPath().c_str();
-            while (topo.getNode(random_num)->getModule() == getParentModule()) {
-
+            int random_num = 0;
+            do {
                 // avoid same source and destination
                 random_num = intrand(topo.getNumNodes());
                 connectAddress =topo.getNode(random_num)->getModule()->getFullPath().c_str();
+
+                destAddr = IPvXAddressResolver().resolve(connectAddress);
+
             }
 
-            destAddr = IPvXAddressResolver().resolve(connectAddress);
+            while (topo.getNode(random_num)->getModule() == getParentModule() || destAddr.isUnspecified());
+
+
+
             ASSERT(!destAddr.isUnspecified());
+            //std::cout << srcAddr.isUnspecified() << endl;
             srcAddr = IPvXAddressResolver().resolve(par("srcAddr"));
+
             EV << "Starting up: dest=" << destAddr << "  src=" << srcAddr << "\n";
 
             sendPingRequest();

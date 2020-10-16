@@ -27,9 +27,12 @@ void TCPTrafficGeneratorApp::initialize(){
 
     //determine linenumbers
     const int SZ = 1024 * 1024;
+    lineNumbers = 0;
     std::vector <char> buff( SZ );
     std::string path = par("pathToFlowSizes");
+    std::cout << path << endl;
     ifstream ifs( path.c_str() );
+
     while( int cc = FileRead( ifs, buff ) ) {
         lineNumbers += CountLines( buff, cc );
     }
@@ -55,6 +58,7 @@ void TCPTrafficGeneratorApp::handleMessage(cMessage *msg){
                 connectAddress = topo.getNode(random_num)->getModule()->getFullPath().c_str();
                 destAddr = IPvXAddressResolver().resolve(connectAddress);
             }
+
             //generate socket
             TCPSocket *tempSocket = new TCPSocket();
             tempSocket->setOutputGate(gate("tcpOut"));
@@ -79,8 +83,11 @@ void TCPTrafficGeneratorApp::handleMessage(cMessage *msg){
                     std::getline(f, s);
 
             //convert to long
-            long size = (long) atof(s.c_str());
 
+            long size = (long) atof(s.c_str());
+            if (size == 0) {
+                size = 1;
+            }
             f.close();
 
             packet->setByteLength(size);
@@ -122,6 +129,7 @@ void TCPTrafficGeneratorApp::handleMessage(cMessage *msg){
             //process the message
             if(tempSocket != NULL){
                 tempSocket->processMessage(msg);
+
             } else {
                 error("This should not happen!");
             }
@@ -206,7 +214,6 @@ unsigned int TCPTrafficGeneratorApp::CountLines( const vector <char> & buff, int
     }
     return newlines;
 }
-
 
 
 

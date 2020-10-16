@@ -10,6 +10,8 @@
 #include "HyperFlowStructs.h"
 #include "HF_ChangeNotification_m.h"
 #include "HF_ReFire_Wrapper.h"
+#include "LLDP_m.h"
+#include "LLDP_Wrapper.h"
 
 class HyperFlowAgent:public AbstractTCPControllerApp {
 
@@ -18,7 +20,8 @@ public:
     HyperFlowAgent();
     ~HyperFlowAgent();
     void synchronizeDataChannelEntry(DataChannelEntry entry);
-
+private:
+    simsignal_t replysize_signal;
 protected:
 
     void initialize();

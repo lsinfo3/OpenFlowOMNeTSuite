@@ -20,12 +20,16 @@ void AbstractControllerApp::initialize(){
     PacketFeatureRequestSignalId = registerSignal("PacketFeatureRequest");
     PacketFeatureReplySignalId = registerSignal("PacketFeatureReply");
     BootedSignalId= registerSignal("Booted");
+    PacketStatsReplySignalId = registerSignal("PacketStatsReply");
+    PacketStatsRequestSignalId = registerSignal("PacketStatsRequest");
 
     getParentModule()->subscribe("PacketIn",this);
     getParentModule()->subscribe("PacketOut",this);
     getParentModule()->subscribe("PacketFeatureRequest",this);
     getParentModule()->subscribe("PacketFeatureReply",this);
     getParentModule()->subscribe("Booted",this);
+    getParentModule()->subscribe("PacketStatsReply", this);
+    getParentModule()->subscribe("PacketStatsRequest", this);
 
     packetsFlooded=0;
     packetsDropped=0;

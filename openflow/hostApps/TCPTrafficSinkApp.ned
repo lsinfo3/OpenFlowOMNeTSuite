@@ -18,4 +18,3 @@ simple TCPTrafficSinkApp like ITCPApp
         input tcpIn @labels(TCPCommand/up);
         output tcpOut @labels(TCPCommand/down);
 }
-

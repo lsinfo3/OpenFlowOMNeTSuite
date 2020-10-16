@@ -8,6 +8,8 @@
 #define MSGKIND_SYNCEVERY 702
 #define MSGKIND_CHECKALIVEEVERY 703
 #define MSGKIND_HFCONNECT 704
+#define MSGKIND_SYNCSERVICETIME 705
+#define MSGKIND_TCPSERVICETIME 3098
 
 Define_Module(HyperFlowAgent);
 
@@ -25,7 +27,7 @@ void HyperFlowAgent::initialize(){
     //init counters
     waitingForSyncResponse = false;
     lastSyncCounter =0;
-
+    replysize_signal = registerSignal("replysize");
     checkSyncEvery = par("checkSyncEvery");
     checkAliveEvery = par("checkAliveEvery");
     checkReportInEvery = par("reportInEvery");
@@ -49,7 +51,107 @@ void HyperFlowAgent::initialize(){
 }
 
 void HyperFlowAgent::handleMessage(cMessage *msg){
-    AbstractTCPControllerApp::handleMessage(msg);
+    //AbstractTCPControllerApp::handleMessage(msg);
+    int serviceTimeFactor = 1;
+
+    if (dynamic_cast<HF_SyncReply *>(msg) != NULL) {
+        HF_SyncReply *castMsg = (HF_SyncReply *)msg;
+        serviceTimeFactor = castMsg->getDataChannel().size() + castMsg->getControlChannel().size();
+
+        emit(replysize_signal, serviceTimeFactor);
+    } else if (msg->getKind()==MSGKIND_SYNCSERVICETIME) {
+
+
+
+        cMessage *data_msg = (cMessage *) msg->getContextPointer();
+        HF_SyncReply *castMsg = (HF_SyncReply *)data_msg;
+        serviceTimeFactor = castMsg->getDataChannel().size() + castMsg->getControlChannel().size();
+    }
+
+    if (msg->isSelfMessage()){
+            if(msg->getKind()==MSGKIND_TCPSERVICETIME || msg->getKind()==MSGKIND_SYNCSERVICETIME){
+                //This is message which has been scheduled due to service time
+
+                //Get the Original message
+                cMessage *data_msg = (cMessage *) msg->getContextPointer();
+                emit(waitingTime,(simTime()-data_msg->getArrivalTime()-(serviceTimeFactor*serviceTime)));
+                processQueuedMsg(data_msg);
+
+
+                //Trigger next service time
+                if (msgList.empty()){
+                    busy = false;
+                } else {
+                    cMessage *msgFromList = msgList.front();
+                    msgList.pop_front();
+                    cMessage *event = new cMessage("event");
+
+                    if (dynamic_cast<HF_SyncReply *>(msgFromList) != NULL) {
+                        HF_SyncReply *castMsg = (HF_SyncReply *)msgFromList;
+                        int nextServiceTimeFactor = castMsg->getDataChannel().size() + castMsg->getControlChannel().size();
+                        event->setKind(MSGKIND_SYNCSERVICETIME);
+                        event->setContextPointer(msgFromList);
+                        scheduleAt(simTime()+(nextServiceTimeFactor*serviceTime), event);
+                    } else {
+                        cMessage *data_msg = (cMessage *) msg->getContextPointer();
+                        event->setKind(MSGKIND_TCPSERVICETIME);
+                        event->setContextPointer(msgFromList);
+                        scheduleAt(simTime()+(serviceTime), event);
+                    }
+
+                }
+                calcAvgQueueSize(msgList.size());
+
+                //delete the msg for efficiency
+                delete msg;
+            }
+
+
+        } else {
+                //imlement service time
+                if (busy) {
+                    msgList.push_back(msg);
+                } else {
+                    busy = true;
+                    cMessage *event = new cMessage("event");
+
+                    if (dynamic_cast<HF_SyncReply *>(msg) != NULL) {
+                        HF_SyncReply *castMsg = (HF_SyncReply *)msg;
+                        event->setKind(MSGKIND_SYNCSERVICETIME);
+                        event->setContextPointer(msg);
+                        scheduleAt(simTime()+(serviceTimeFactor*serviceTime), event);
+                    } else {
+                        cMessage *data_msg = (cMessage *) msg->getContextPointer();
+                        event->setKind(MSGKIND_TCPSERVICETIME);
+                        event->setContextPointer(msg);
+                        scheduleAt(simTime()+(serviceTime), event);
+                    }
+
+                    //event->setKind(MSGKIND_TCPSERVICETIME);
+                    //event->setContextPointer(msg);
+                    //scheduleAt(simTime()+serviceTime, event);
+                }
+                emit(queueSize,msgList.size());
+                if(bytesPerSecond.count(floor(simTime().dbl())) <=0){
+                    if (msg->isPacket()){
+                        int byteLength = dynamic_cast<cPacket*>(msg)->getByteLength();
+                        bytesPerSecond.insert(pair<int,int>(floor(simTime().dbl()),byteLength));
+                    }
+
+                } else {
+                    if (msg->isPacket()){
+                        int byteLength = dynamic_cast<cPacket*>(msg)->getByteLength();
+                        bytesPerSecond[floor(simTime().dbl())] = bytesPerSecond[floor(simTime().dbl())] + byteLength;
+                    }
+                }
+
+                if(packetsPerSecond.count(floor(simTime().dbl())) <=0){
+                    packetsPerSecond.insert(pair<int,int>(floor(simTime().dbl()),1));
+                } else {
+                    packetsPerSecond[floor(simTime().dbl())]++;
+                }
+                calcAvgQueueSize(msgList.size());
+        }
 
     if (msg->isSelfMessage()){
         if (msg->getKind()==MSGKIND_REPORTINEVERY){
@@ -148,6 +250,7 @@ void HyperFlowAgent::sendSyncRequest(){
 }
 
 void HyperFlowAgent::handleSyncReply(HF_SyncReply * msg){
+
     waitingForSyncResponse = false;
 
     //update control channel
@@ -181,6 +284,8 @@ void HyperFlowAgent::handleSyncReply(HF_SyncReply * msg){
         if(strcmp((*iterData).srcController.c_str(),controller->getFullPath().c_str())!=0){
             HF_ReFire_Wrapper * rfWrapper = new HF_ReFire_Wrapper();
             rfWrapper->setDataChannelEntry(*iterData);
+
+
             emit(HyperFlowReFireSignalId,rfWrapper);
             delete rfWrapper;
         }

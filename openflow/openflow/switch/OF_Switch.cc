@@ -5,6 +5,8 @@
 #include "OFP_Initialize_Handshake_m.h"
 #include "OFP_Features_Reply_m.h"
 #include "OFP_Hello_m.h"
+#include "OFP_Stats_Reply_m.h"
+#include "OFP_Stats_Request_m.h"
 
 #include "OFP_Packet_In_m.h"
 #include "OFP_Packet_Out_m.h"
@@ -114,7 +116,6 @@ void OF_Switch::initialize(){
 
 
 void OF_Switch::handleMessage(cMessage *msg){
-
     if (msg->isSelfMessage()){
         if (msg->getKind()==MSGKIND_CONNECT) {
             EV << "starting session" << '\n';
@@ -125,6 +126,7 @@ void OF_Switch::handleMessage(cMessage *msg){
             //Get the Original message
             cMessage *data_msg = (cMessage *) msg->getContextPointer();
             emit(waitingTime,(simTime()-data_msg->getArrivalTime()-serviceTime));
+
             processQueuedMsg(data_msg);
 
             //delete the processed msg
@@ -151,6 +153,7 @@ void OF_Switch::handleMessage(cMessage *msg){
             socket.processMessage(msg);
         }else{
             //imlement service time
+
             if (busy) {
                 msgList.push_back(msg);
             } else {
@@ -219,6 +222,9 @@ void OF_Switch::processQueuedMsg(cMessage *data_msg){
                 case OFPT_PACKET_OUT:
                     handlePacketOutMessage(of_msg);
                     break;
+                case OFPT_STATS_REQUEST:
+                    handleStatsRequestMessage(of_msg);
+                    break;
                 }
         }
 
@@ -226,9 +232,80 @@ void OF_Switch::processQueuedMsg(cMessage *data_msg){
 
 }
 
+void OF_Switch::handleStatsRequestMessage(Open_Flow_Message *of_msg){
+    // Antwort erstellen
+    OFP_Stats_Reply *statsReply = new OFP_Stats_Reply("StatsReply");
+
+    // Typ der Antwort setzen
+    statsReply->getHeader().type = OFPT_STATS_REPLY;
+    OFP_Stats_Request *statsReqMsg = (OFP_Stats_Request *) of_msg;
+    ofp_stats_types type = (ofp_stats_types)statsReqMsg->getType();
+    statsReply->setType(type);
+
+    // Body der Request kopieren
+    int bodysize = statsReqMsg->getBodyArraySize();
+    uint8_t body[bodysize];
+    for (int i = 0; i < bodysize; i++) {
+        body[i] = statsReqMsg->getBody(i);
+    }
+
+    switch (type) {
+    case OFPST_FLOW: {
+
+        // Typ auf Zeiger vom kopierten Array casten
+        ofp_flow_stats_request request_body = ofp_flow_stats_request();
+
+        memcpy(&request_body, body, bodysize);
+        //request_body = (ofp_flow_stats_request *) body;
+
+        // Tabelleneinträge...
+        oxm_basic_match match = request_body.match;
+        auto lookupAll = flowTable.lookupAll(match);
+
+        // Array aus Bodies der Reply
+        ofp_flow_stats reply_bodies[lookupAll.size()];
+
+        //  Die einzelnen Bodies befüllen
+        ofp_flow_stats reply_body = ofp_flow_stats();
+        int size_reply_body = static_cast<int>(sizeof(reply_body));
+        int size_array_reply_body = lookupAll.size() * size_reply_body;
+        statsReply->setBodyArraySize(size_array_reply_body);
+
+       int j = 0;
+       int i = 0;
+        for(auto iter = lookupAll.begin(); iter != lookupAll.end(); ++iter){
+            reply_bodies[j].match = (*iter)->getMatch();
+            reply_bodies[j].byte_count = (*iter)->getCounters().bytesReceived;
+            reply_bodies[j].packet_count = (*iter)->getCounters().packetsReceived;
+
+
+            reply_bodies[j].hard_timeout = (*iter)->getHardTimeout();
+            reply_bodies[j].idle_timeout = (*iter)->getIdleTimeout();
+
+            int k = 0;
+            while (k < size_reply_body && i < size_array_reply_body) {
+                  statsReply->setBody(i,  *((uint8_t *)(&reply_bodies[0]) + i));
+                  i++;
+                  k++;
+            }
+            j++;
+        }
+        break;
+    }
+    case OFPST_AGGREGATE:
+        break;
+    case OFPST_DESC:
+        break;
+    }
+
+
+    statsReply->setByteLength(56);
+    statsReply->setKind(TCP_C_SEND);
+    socket.send(statsReply);
+}
+
 void OF_Switch::processFrame(EthernetIIFrame *frame){
     oxm_basic_match match = oxm_basic_match();
-
     //extract match fields
     match.OFB_IN_PORT = frame->getArrivalGate()->getIndex();
     match.OFB_ETH_SRC = frame->getSrc();
@@ -264,6 +341,14 @@ void OF_Switch::processFrame(EthernetIIFrame *frame){
        //lookup successful
        flowTableHit++;
        EV << "Found entry in flow table." << '\n';
+
+       int bytesReceived = lookup->getCounters().bytesReceived + frame->getByteLength();
+       int packetsReceived = lookup->getCounters().packetsReceived + 1;
+       flow_table_counters counters;
+       counters.bytesReceived = bytesReceived;
+       counters.packetsReceived = packetsReceived;
+       lookup->setCounters(counters);
+
        ofp_action_output action_output = lookup->getInstructions();
        uint32_t outport = action_output.port;
        if(outport == OFPP_CONTROLLER){
@@ -369,6 +454,7 @@ void OF_Switch::handleMissMatchedPacket(EthernetIIFrame *frame){
 
 
 void OF_Switch::handlePacketOutMessage(Open_Flow_Message *of_msg){
+
     //cast message
     OFP_Packet_Out *packet_out_msg = (OFP_Packet_Out *) of_msg;
 
@@ -409,9 +495,18 @@ void OF_Switch::executePacketOutAction(ofp_action_header *action, EthernetIIFram
                 send(frame->dup(), "dataPlaneOut", i);
             }
         }
-    }else {
-        EV << "Send Packet\n" << '\n';
-        send(frame->dup(), "dataPlaneOut", outport);
+    } else {
+
+            //if(!((portVector[outport].state & OFPPS_BLOCKED))){ //NEUE ADDIERT FUER LINKREMOVER
+            if(!(portVector[outport].state  == (OFPPS_BLOCKED | OFPPS_LINK_DOWN))){ //NEUE ADDIERT FUER LINKREMOVER
+            EV << "Send Packet\n" << '\n';
+                send(frame->dup(), "dataPlaneOut", outport);
+            }
+            /*else{
+                delete frame;
+            }
+            */
+
     }
     delete frame;
 }

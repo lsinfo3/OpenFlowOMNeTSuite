@@ -32,7 +32,6 @@ void KN_ARPResponder::handlePacketIn(OFP_Packet_In * packet_in_msg){
 
     //check if it is an arp packet
     if(headerFields.eth_type == ETHERTYPE_ARP){
-
             //add entry if not existent
             if(addEntry(headerFields.arp_src_adr.str(),headerFields.src_mac)){
                 if(!knAgent->getIsRootController()){
@@ -47,6 +46,7 @@ void KN_ARPResponder::handlePacketIn(OFP_Packet_In * packet_in_msg){
                     entry.trgController = "RootController";
                     entry.trgSwitch = "";
                     entry.srcSwitch = headerFields.swInfo->getMacAddress();
+
                     entry.type=0;
                     entry.srcController = controller->getFullPath();
                     entry.payload = wrapperArp;

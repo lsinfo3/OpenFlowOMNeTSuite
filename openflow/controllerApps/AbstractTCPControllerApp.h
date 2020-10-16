@@ -21,6 +21,7 @@ protected:
     simsignal_t waitingTime;
 
     std::map<int,int> packetsPerSecond;
+    std::map<int,int> bytesPerSecond;
 
     int lastQueueSize;
     double lastChangeTime;

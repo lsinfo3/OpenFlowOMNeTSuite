@@ -42,3 +42,11 @@ int LLDP_Wrapper::getSrcPort() const{
 void LLDP_Wrapper::setSrcPort(int srcPort){
     this->srcPort = srcPort;
 }
+
+double LLDP_Wrapper::getTimestamp() const {
+    return this->timestamp;
+}
+
+void LLDP_Wrapper::setTimestamp(double timestamp){
+    this->timestamp = timestamp;
+}

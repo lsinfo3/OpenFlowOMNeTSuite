@@ -12,7 +12,8 @@
 #include "TCPConnection.h"
 #include "OFP_Initialize_Handshake_m.h"
 #include "AbstractControllerApp.h"
-
+#include "OFP_Stats_Request_m.h"
+#include "OFP_Stats_Reply_m.h"
 
 #define MSGKIND_BOOTED 100
 
@@ -38,10 +39,13 @@ void OF_Controller::initialize(){
     PacketFeatureRequestSignalId = registerSignal("PacketFeatureRequest");
     PacketFeatureReplySignalId = registerSignal("PacketFeatureReply");
     BootedSignalId = registerSignal("Booted");
+    PacketStatsReplySignalId = registerSignal("PacketStatsReply");
+    PacketStatsRequestSignalId = registerSignal("PacketStatsRequest");
 
     //stats
     queueSize = registerSignal("queueSize");
     waitingTime = registerSignal("waitingTime");
+
     numPacketIn=0;
 
     lastQueueSize =0;
@@ -67,6 +71,7 @@ void OF_Controller::initialize(){
 
 
 void OF_Controller::handleMessage(cMessage *msg){
+
     if (msg->isSelfMessage()) {
         if (msg->getKind()==MSGKIND_BOOTED){
             emit(BootedSignalId,this);
@@ -105,6 +110,18 @@ void OF_Controller::handleMessage(cMessage *msg){
             scheduleAt(simTime()+serviceTime, event);
         }
 
+        if(bytesPerSecond.count(floor(simTime().dbl())) <=0){
+            if (msg->isPacket()){
+                int byteLength = dynamic_cast<cPacket*>(msg)->getByteLength();
+                bytesPerSecond.insert(pair<int,int>(floor(simTime().dbl()),byteLength));
+            }
+
+        } else {
+            if (msg->isPacket()){
+                int byteLength = dynamic_cast<cPacket*>(msg)->getByteLength();
+                bytesPerSecond[floor(simTime().dbl())] = bytesPerSecond[floor(simTime().dbl())] + byteLength;
+            }
+        }
 
         if(packetsPerSecond.count(floor(simTime().dbl())) <=0){
             packetsPerSecond.insert(pair<int,int>(floor(simTime().dbl()),1));
@@ -149,12 +166,30 @@ void OF_Controller::processQueuedMsg(cMessage *data_msg){
                 EV << "packet-in message from switch\n";
                 handlePacketIn(of_msg);
                 break;
+            case OFPT_STATS_REPLY:
+                handleStatsReply(of_msg);
+                break;
             default:
                 break;
         }
     }
 }
 
+void OF_Controller::handleStatsReply(Open_Flow_Message *of_msg){
+    EV << "OFA_controller::handleStatsReply" << endl;
+      if(dynamic_cast<OFP_Stats_Reply *>(of_msg) != NULL){
+          OFP_Stats_Reply * castMsg = (OFP_Stats_Reply *)of_msg;
+          emit(PacketStatsReplySignalId,castMsg);
+      }
+}
+
+void OF_Controller::sendStatsRequest(Open_Flow_Message *of_msg, TCPSocket *socket) {
+    Enter_Method_Silent();
+    take(of_msg);
+    EV << "OFA_controller::sendStatsRequest" << endl;
+    emit(PacketStatsRequestSignalId, of_msg);
+    socket->send(of_msg);
+}
 
 void OF_Controller::sendHello(Open_Flow_Message *msg){
     OFP_Hello *hello = new OFP_Hello("Hello");
@@ -189,6 +224,7 @@ void OF_Controller::handleFeaturesReply(Open_Flow_Message *of_msg){
         swInfo->setNumOfPorts(castMsg->getPortsArraySize());
         emit(PacketFeatureReplySignalId,castMsg);
     }
+
 }
 
 void OF_Controller::handlePacketIn(Open_Flow_Message *of_msg){
@@ -290,6 +326,13 @@ void OF_Controller::finish(){
         stringstream name;
         name << "avgQueueSizeAt-" << iterMap2->first;
         recordScalar(name.str().c_str(),(iterMap2->second/1.0));
+    }
+
+    std::map<int,int>::iterator iterMap3;
+    for(iterMap3 = bytesPerSecond.begin(); iterMap3 != bytesPerSecond.end(); iterMap3++){
+        stringstream name;
+        name << "bytesPerSecondAt-" << iterMap3->first;
+        recordScalar(name.str().c_str(),iterMap3->second);
     }
 }
 

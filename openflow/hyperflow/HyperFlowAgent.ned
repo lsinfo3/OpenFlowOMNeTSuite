@@ -9,6 +9,9 @@ simple HyperFlowAgent extends openflow.controllerApps.AbstractTCPControllerApp
 {
     
     parameters:
+        @signal[replysize](type="int");
+        @statistic[replysize](title="replysize"; source="replysize"; record=vector,stats; interpolationmode=none);
+        
         @class(HyperFlowAgent);
         @display("i=block/app");
         int flowModHardTimeOut = default(0);

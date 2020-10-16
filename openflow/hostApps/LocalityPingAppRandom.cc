@@ -1,5 +1,3 @@
-
-
 #include <iostream>
 
 #include "LocalityPingAppRandom.h"
@@ -52,6 +50,7 @@ void LocalityPingAppRandom::initialize(int stage){
 
     }
     PingApp::initialize(stage);
+    pingPacketHash = registerSignal("pingPacketHash");
 }
 
 void LocalityPingAppRandom::handleMessage(cMessage *msg){
@@ -91,10 +90,17 @@ void LocalityPingAppRandom::handleMessage(cMessage *msg){
             sendPingRequest();
             if (isEnabled())
                 scheduleNextPingRequest(simTime());
-        }
-        else
-            processPingResponse(check_and_cast<PingPayload *>(msg));
+        } else {
+            PingPayload * pingMsg = check_and_cast<PingPayload *>(msg);
 
+            //generate and emit hash
+            std::stringstream hashString;
+            hashString << "SeqNo-" << pingMsg->getSeqNo() << "-Pid-" << pingMsg->getOriginatorId();
+            unsigned long hash = std::hash<std::string>()(hashString.str().c_str());
+            emit(pingPacketHash,hash);
+            processPingResponse(pingMsg);
+
+        }
         if (ev.isGUI()){
             char buf[40];
             sprintf(buf, "sent: %ld pks\nrcvd: %ld pks", sentCount, numPongs);

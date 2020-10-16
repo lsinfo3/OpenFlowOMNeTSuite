@@ -13,7 +13,7 @@ using namespace std;
 /**
  * Single-connection TCP application.
  */
-class INET_API TCPTrafficSinkApp : public cSimpleModule, public TCPSocket::CallbackInterface
+class TCPTrafficSinkApp : public cSimpleModule, public TCPSocket::CallbackInterface
 {
 
   protected:
@@ -32,4 +32,3 @@ class INET_API TCPTrafficSinkApp : public cSimpleModule, public TCPSocket::Callb
 };
 
 #endif
-

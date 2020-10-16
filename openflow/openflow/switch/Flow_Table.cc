@@ -27,7 +27,6 @@ void Flow_Table::addEntry(Flow_Table_Entry entry) {
 
 Flow_Table_Entry* Flow_Table::lookup(oxm_basic_match &match) {
     EV << "Looking through " << entryList.size() << " Flow Entries!" << '\n';
-
     for(auto iter =entryList.begin();iter != entryList.end();++iter){
 
         //check if flow has expired
@@ -48,4 +47,24 @@ Flow_Table_Entry* Flow_Table::lookup(oxm_basic_match &match) {
     return NULL;
 }
 
+std::list<Flow_Table_Entry*> Flow_Table::lookupAll(oxm_basic_match &match) {
+    EV << "Looking through " << entryList.size() << " Flow Entries!" << '\n';
+
+    std::list<Flow_Table_Entry*> list;
+    for(auto iter =entryList.begin();iter != entryList.end();++iter){
+        if (flow_fields_match(match, (*iter).getMatch(), match.wildcards)){
+            list.push_back(&(*iter));
+        }
+    }
+    return list;
+}
+
+std::list<Flow_Table_Entry*> Flow_Table::getEntryList() {
+    std::list<Flow_Table_Entry*> list;
+    for(auto iter =entryList.begin();iter != entryList.end();++iter){
+        list.push_back(&(*iter));
+
+    }
+    return list;
+}
 

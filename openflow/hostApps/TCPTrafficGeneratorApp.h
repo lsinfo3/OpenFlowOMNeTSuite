@@ -23,7 +23,7 @@ struct Stats{
     long transmittedBytes;
 };
 
-class INET_API TCPTrafficGeneratorApp : public cSimpleModule, public TCPSocket::CallbackInterface
+class TCPTrafficGeneratorApp : public cSimpleModule, public TCPSocket::CallbackInterface
 {
 
   protected:
@@ -52,4 +52,3 @@ class INET_API TCPTrafficGeneratorApp : public cSimpleModule, public TCPSocket::
 };
 
 #endif
-

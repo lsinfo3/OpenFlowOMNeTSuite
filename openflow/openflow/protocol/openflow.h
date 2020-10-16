@@ -368,4 +368,70 @@ enum ofp_port_features {
     OFPPF_PAUSE_ASYM = 1 << 15  /* Asymmetric pause. */
 };
 
+
+
+enum ofp_stats_types {
+/* Description of this OpenFlow switch.
+* The request body is empty.
+* The reply body is struct ofp_desc_stats. */
+OFPST_DESC,
+/* Individual flow statistics.
+* The request body is struct ofp_flow_stats_request.
+* The reply body is an array of struct ofp_flow_stats. */
+OFPST_FLOW,
+/* Aggregate flow statistics.
+* The request body is struct ofp_aggregate_stats_request.
+* The reply body is struct ofp_aggregate_stats_reply. */
+OFPST_AGGREGATE,
+/* Flow table statistics.
+* The request body is empty.
+* The reply body is an array of struct ofp_table_stats. */
+OFPST_TABLE,
+/* Physical port statistics.
+* The request body is struct ofp_port_stats_request.
+* The reply body is an array of struct ofp_port_stats. */
+OFPST_PORT,
+/* Queue statistics for a port
+* The request body defines the port
+* The reply body is an array of struct ofp_queue_stats */
+OFPST_QUEUE,
+/* Vendor extension.
+* The request and reply bodies begin with a 32-bit vendor ID, which takes
+* the same form as in "struct ofp_vendor_header". The request and reply
+* bodies are otherwise vendor-defined. */
+OFPST_VENDOR = 0xffff
+};
+
+struct ofp_flow_stats_request {
+    struct oxm_basic_match match; /* Fields to match. */
+    uint8_t table_id; /* ID of table to read (from ofp_table_stats),
+     OpenFlow Switch Specification Version 1.0.0
+     0xff for all tables or 0xfe for emergency. */
+    uint8_t pad; /* Align to 32 bits. */
+    uint16_t out_port; /* Require matching entries to include this
+     as an output port. A value of OFPP_NONE
+     indicates no restriction. */
+};
+
+struct ofp_flow_stats {
+    uint16_t length; /* Length of this entry. */
+    uint8_t table_id; /* ID of table flow came from. */
+    uint8_t pad;
+    struct oxm_basic_match match; /* Description of fields. */
+    uint32_t duration_sec; /* Time flow has been alive in seconds. */
+    uint32_t duration_nsec; /* Time flow has been alive in nanoseconds beyond
+     duration_sec. */
+    uint16_t priority; /* Priority of the entry. Only meaningful
+     when this is not an exact-match entry. */
+    uint16_t idle_timeout; /* Number of seconds idle before expiration. */
+    uint16_t hard_timeout; /* Number of seconds before expiration. */
+    uint8_t pad2[6]; /* Align to 64-bits. */
+    uint64_t cookie; /* Opaque controller-issued identifier. */
+    uint64_t packet_count; /* Number of packets in flow. */
+    uint64_t byte_count; /* Number of bytes in flow. */
+    struct ofp_action_header actions[0]; /* Actions. */
+};
+
+
+
 #endif /* OPENFLOW_H_ */

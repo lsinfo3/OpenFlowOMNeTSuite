@@ -19,6 +19,7 @@ public:
     virtual void finish();
 
     void sendPacketOut(Open_Flow_Message *of_msg, TCPSocket * socket);
+    void sendStatsRequest(Open_Flow_Message *of_msg, TCPSocket *socket);
 
     void registerApp(AbstractControllerApp * app);
 
@@ -38,12 +39,17 @@ protected:
     simsignal_t PacketFeatureRequestSignalId;
     simsignal_t PacketFeatureReplySignalId;
     simsignal_t BootedSignalId;
+    simsignal_t PacketStatsReplySignalId;
+    simsignal_t PacketStatsRequestSignalId;
+
 
     //stats
     simsignal_t queueSize;
     simsignal_t waitingTime;
+
     long numPacketIn;
     std::map<int,int> packetsPerSecond;
+    std::map<int,int> bytesPerSecond;
 
     int lastQueueSize;
     double lastChangeTime;
@@ -67,6 +73,8 @@ protected:
     void sendFeatureRequest(cMessage *msg);
     virtual void handleFeaturesReply(Open_Flow_Message *of_msg);
     virtual void handlePacketIn(Open_Flow_Message *of_msg);
+    void handleStatsReply(Open_Flow_Message *msg);
+
 };
 
 

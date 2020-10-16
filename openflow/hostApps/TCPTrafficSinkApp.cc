@@ -42,6 +42,7 @@ void TCPTrafficSinkApp::handleMessage(cMessage *msg){
     }
 }
 
+
 void TCPTrafficSinkApp::socketDataArrived(int connId, void *yourPtr, cPacket *msg, bool urgent){
     EV<< "TCPSinkApp all Data Arrived -> Close" << endl;
     if (static_cast<TCPSocket *>(yourPtr) != NULL) {
@@ -78,7 +79,6 @@ void TCPTrafficSinkApp::socketStatusArrived(int connId, void *yourPtr, TCPStatus
     EV<< "TCPSinkApp Status Arrived" << endl;
     delete status;
 }
-
 
 
 

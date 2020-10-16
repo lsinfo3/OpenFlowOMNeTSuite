@@ -27,6 +27,7 @@
  * packet OFP_Flow_Mod extends Open_Flow_Message
  * {
  *     uint64_t cookie; //* Opaque controller-issued identifier.   
+ * 
  *     uint64_t cookie_mask; //* Mask used to restrict the cookie bits
  *                             //that must match when the command is
  *                             //OFPFC_MODIFY* or OFPFC_DELETE*. A value

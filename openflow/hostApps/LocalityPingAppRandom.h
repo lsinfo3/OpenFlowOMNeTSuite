@@ -25,6 +25,8 @@ class LocalityPingAppRandom : public PingApp {
     double localityRelation;
     std::string localId;
     std::map<std::string,std::vector<std::string> > groupToNodes;
+
+    simsignal_t pingPacketHash;
 };
 
 

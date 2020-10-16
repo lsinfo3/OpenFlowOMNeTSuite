@@ -35,6 +35,10 @@ network Scenario_TestCase
         spanningTree: StaticSpanningTree {
             @display("p=61,108");
         }
+        
+        openFlowGraphAnalyzer: OpenFlowGraphAnalyzer {
+            @display("p=458,270");
+        }
 
         controllerInvolvementFilter: ControllerInvolvementFilter {
             @display("p=59,39");

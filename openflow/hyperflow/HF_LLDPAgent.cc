@@ -23,6 +23,8 @@ void HF_LLDPAgent::initialize(){
     HyperFlowReFireSignalId =registerSignal("HyperFlowReFire");
     getParentModule()->subscribe("HyperFlowReFire",this);
 
+    timeDiff_signal = registerSignal("timeDiff");
+
 }
 
 
@@ -44,6 +46,7 @@ void HF_LLDPAgent::handlePacketIn(OFP_Packet_In * packet_in_msg){
             if(printMibGraph){
                 EV << mibGraph.getStringGraph() << endl;
             }
+            emit(timeDiff_signal, 0);
 
             //inform hyperflow
             LLDP_Wrapper *wrapper = new LLDP_Wrapper();
@@ -51,6 +54,7 @@ void HF_LLDPAgent::handlePacketIn(OFP_Packet_In * packet_in_msg){
             wrapper->setDstPort(headerFields.inport);
             wrapper->setSrcId(lldp->getChassisID());
             wrapper->setSrcPort(lldp->getPortID());
+            wrapper->setTimestamp(simTime().dbl());
 
             DataChannelEntry entry = DataChannelEntry();
             entry.eventId = 0;
@@ -71,13 +75,14 @@ void HF_LLDPAgent::handlePacketIn(OFP_Packet_In * packet_in_msg){
              if(printMibGraph){
                  EV << mibGraph.getStringGraph() << endl;
              }
-
+             emit(timeDiff_signal, 0);
              //inform hyperflow
              LLDP_Wrapper *wrapper = new LLDP_Wrapper();
              wrapper->setDstId(headerFields.swInfo->getMacAddress());
              wrapper->setDstPort(headerFields.inport);
              wrapper->setSrcId(headerFields.src_mac.str());
              wrapper->setSrcPort(-1);
+             wrapper->setTimestamp(simTime().dbl());
 
              DataChannelEntry entry = DataChannelEntry();
              entry.eventId = 0;
@@ -118,6 +123,9 @@ void HF_LLDPAgent::receiveSignal(cComponent *src, simsignal_t id, cObject *obj) 
                 if (dynamic_cast<LLDP_Wrapper *>(hfRefire->getDataChannelEntry().payload) != NULL) {
                     LLDP_Wrapper *wrapper = (LLDP_Wrapper *) hfRefire->getDataChannelEntry().payload;
                     mibGraph.addEntry(wrapper->getSrcId(),wrapper->getSrcPort(),wrapper->getDstId(),wrapper->getDstPort(),timeOut);
+                    double timeDifference =  simTime().dbl() - wrapper->getTimestamp();
+                    emit(timeDiff_signal, timeDifference);
+
                     if(printMibGraph){
                         EV << mibGraph.getStringGraph() << endl;
                     }

@@ -11,7 +11,8 @@ using namespace __gnu_cxx;
 
 
 struct flow_table_counters {
-
+    int bytesReceived;
+    int packetsReceived;
 };
 
 struct flow_table_flags {

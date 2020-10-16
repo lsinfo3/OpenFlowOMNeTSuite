@@ -6,6 +6,9 @@ import openflow.controllerApps.*;
 simple KN_LLDPAgent like AbstractControllerApp
 {
     parameters:
+        @signal[timeDiff](type="double");
+        @statistic[timeDiff](title="timeDiff"; source="timeDiff"; record=vector,stats; interpolationmode=none);
+         
         @display("i=block/app");
         
         //default value cisco

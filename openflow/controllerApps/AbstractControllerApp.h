@@ -33,6 +33,8 @@ protected:
     simsignal_t PacketFeatureRequestSignalId;
     simsignal_t PacketFeatureReplySignalId;
     simsignal_t BootedSignalId;
+    simsignal_t PacketStatsReplySignalId;
+    simsignal_t PacketStatsRequestSignalId;
 
     long packetsFlooded;
     long packetsDropped;

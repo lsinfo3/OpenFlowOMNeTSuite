@@ -18,6 +18,7 @@ public:
     ~OF_Switch();
     void disablePorts(std::vector<int> ports);
     virtual void finish();
+    std::vector<ofp_port> portVector;
 
 protected:
     double flowTimeoutPollInterval;
@@ -38,7 +39,7 @@ protected:
     simsignal_t waitingTime;
 
     std::list<cMessage *> msgList;
-    std::vector<ofp_port> portVector;
+    //std::vector<ofp_port> portVector;
 
 
     Buffer buffer;
@@ -50,6 +51,7 @@ protected:
     void connect(const char *connectToAddress);
 
     void processQueuedMsg(cMessage *data_msg);
+    void handleStatsRequestMessage(Open_Flow_Message *of_msg);
     void handleFeaturesRequestMessage(Open_Flow_Message *of_msg);
     void handleFlowModMessage(Open_Flow_Message *of_msg);
     void handlePacketOutMessage(Open_Flow_Message *of_msg);

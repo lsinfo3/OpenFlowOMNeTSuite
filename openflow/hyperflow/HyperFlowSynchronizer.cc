@@ -115,7 +115,7 @@ void HyperFlowSynchronizer::handleSyncRequest(HF_SyncRequest * msg){
     reply->setDataChannel(tempDataChannel);
 
 
-    reply->setByteLength(sizeof(controlChannel)+sizeof(tempDataChannel));
+    reply->setByteLength(controlChannel.size()+tempDataChannel.size()+1);
     reply->setKind(TCP_C_SEND);
     socket->send(reply);
 }

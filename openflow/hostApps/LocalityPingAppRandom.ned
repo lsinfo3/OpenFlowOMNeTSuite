@@ -31,6 +31,8 @@ import inet.applications.pingapp.*;
 //
 simple LocalityPingAppRandom extends inet.applications.pingapp.PingApp{
     parameters:
+        @signal[pingPacketHash](type="long");
+        @statistic[pingPacketHash](title="PingPacketHash"; record=vector?,stats?; interpolationmode=none);
         @display("i=block/app");
         @class(LocalityPingAppRandom);
         double localityRelation = default(0.5);

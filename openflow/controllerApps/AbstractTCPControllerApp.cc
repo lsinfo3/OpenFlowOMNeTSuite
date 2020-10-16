@@ -77,6 +77,19 @@ void AbstractTCPControllerApp::handleMessage(cMessage *msg){
                 scheduleAt(simTime()+serviceTime, event);
             }
             emit(queueSize,msgList.size());
+            if(bytesPerSecond.count(floor(simTime().dbl())) <=0){
+                if (msg->isPacket()){
+                    int byteLength = dynamic_cast<cPacket*>(msg)->getByteLength();
+                    bytesPerSecond.insert(pair<int,int>(floor(simTime().dbl()),byteLength));
+                }
+
+            } else {
+                if (msg->isPacket()){
+                    int byteLength = dynamic_cast<cPacket*>(msg)->getByteLength();
+                    bytesPerSecond[floor(simTime().dbl())] = bytesPerSecond[floor(simTime().dbl())] + byteLength;
+                }
+            }
+
             if(packetsPerSecond.count(floor(simTime().dbl())) <=0){
                 packetsPerSecond.insert(pair<int,int>(floor(simTime().dbl()),1));
             } else {
@@ -124,5 +137,12 @@ void AbstractTCPControllerApp::finish(){
         stringstream name;
         name << "avgQueueSizeAt-" << iterMap2->first;
         recordScalar(name.str().c_str(),(iterMap2->second/1.0));
+    }
+
+    std::map<int,int>::iterator iterMap3;
+    for(iterMap3 = bytesPerSecond.begin(); iterMap3 != bytesPerSecond.end(); iterMap3++){
+        stringstream name;
+        name << "bytesPerSecondAt-" << iterMap3->first;
+        recordScalar(name.str().c_str(),iterMap3->second);
     }
 }

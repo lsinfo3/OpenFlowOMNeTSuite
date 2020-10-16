@@ -12,6 +12,9 @@ Flow_Table_Entry::Flow_Table_Entry(){
 }
 
 Flow_Table_Entry::Flow_Table_Entry(OFP_Flow_Mod *flowModMsg){
+    counters.bytesReceived = 0;
+    counters.packetsReceived = 0;
+
     match = flowModMsg->getMatch();
 
     instructions[0] = flowModMsg->getActions(0);
